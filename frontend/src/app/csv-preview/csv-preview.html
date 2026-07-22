@@ -1,0 +1,103 @@
+<main class="page-shell">
+  <section class="hero" aria-labelledby="page-title">
+    <p class="eyebrow">Transformación de datos sencilla</p>
+    <h1 id="page-title">SaaS ETL Platform</h1>
+    <p class="hero-copy">
+      Sube un archivo CSV y comprueba sus columnas y primeras filas antes de transformarlo.
+    </p>
+  </section>
+
+  <section class="upload-card" aria-labelledby="upload-title">
+    <div>
+      <h2 id="upload-title">Vista previa de CSV</h2>
+      <p>Selecciona un único archivo de hasta 5 MiB.</p>
+    </div>
+
+    <label class="file-picker">
+      <span>Seleccionar archivo CSV</span>
+      <input
+        type="file"
+        accept=".csv,text/csv"
+        [disabled]="previewStatus() === 'loading'"
+        (change)="onFileSelected($event)"
+      />
+    </label>
+
+    @if (selectedFile(); as file) {
+      <p class="selected-file">
+        Archivo seleccionado: <strong>{{ file.name }}</strong>
+      </p>
+    } @else {
+      <p class="selected-file muted">Todavía no has seleccionado ningún archivo.</p>
+    }
+
+    <button type="button" [disabled]="!canPreview()" (click)="submit()">
+      @if (previewStatus() === 'loading') {
+        Procesando…
+      } @else {
+        Mostrar vista previa
+      }
+    </button>
+
+    @if (previewStatus() === 'loading') {
+      <p class="status-message" role="status">Estamos leyendo y validando el archivo.</p>
+    }
+
+    @if (previewStatus() === 'error' && previewErrorMessage(); as message) {
+      <div class="error-message" role="alert">
+        <strong>No se pudo obtener la vista previa.</strong>
+        <span>{{ message }}</span>
+      </div>
+    }
+  </section>
+
+  @if (previewStatus() === 'success' && previewResult(); as result) {
+    <app-csv-preview-table [preview]="result" label="Vista previa original" />
+
+    <section class="transformation-card" aria-labelledby="remove-column-title">
+      <div>
+        <p class="eyebrow">Transformación</p>
+        <h2 id="remove-column-title">Eliminar una columna</h2>
+        <p>Selecciona la columna que quieres retirar de la vista previa.</p>
+      </div>
+
+      <label class="column-picker" for="column-to-remove">Columna</label>
+      <select
+        id="column-to-remove"
+        [value]="selectedColumn() ?? ''"
+        (change)="onColumnSelected($event)"
+      >
+        <option value="" disabled>Selecciona una columna</option>
+        @for (column of result.columns; track column) {
+          <option [value]="column">{{ column }}</option>
+        }
+      </select>
+
+      <button type="button" [disabled]="!canRemoveColumn()" (click)="removeColumn()">
+        @if (removeColumnStatus() === 'loading') {
+          Eliminando columna…
+        } @else {
+          Eliminar columna
+        }
+      </button>
+
+      @if (removeColumnStatus() === 'loading') {
+        <p class="status-message" role="status">Estamos preparando la vista previa transformada.</p>
+      }
+
+      @if (removeColumnStatus() === 'error' && transformationErrorMessage(); as message) {
+        <div class="error-message" role="alert">
+          <strong>No se pudo eliminar la columna.</strong>
+          <span>{{ message }}</span>
+        </div>
+      }
+    </section>
+
+    @if (removeColumnStatus() === 'success' && transformedPreview(); as transformed) {
+      <div class="transformation-summary" role="status">
+        Columna eliminada: <strong>{{ transformed.transformation.removedColumn }}</strong>
+      </div>
+      <app-csv-preview-table [preview]="transformed" label="Vista previa transformada" />
+    }
+  }
+</main>

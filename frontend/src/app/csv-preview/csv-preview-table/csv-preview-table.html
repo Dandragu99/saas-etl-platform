@@ -1,0 +1,46 @@
+<section class="preview-card" [attr.aria-labelledby]="labelId">
+  <div class="preview-heading">
+    <div>
+      <p class="eyebrow">{{ label() }}</p>
+      <h2 [id]="labelId">{{ preview().fileName }}</h2>
+    </div>
+    <p class="row-count">
+      {{ preview().previewRowCount }} {{ preview().previewRowCount === 1 ? 'fila mostrada' : 'filas mostradas' }}
+    </p>
+  </div>
+
+  @if (preview().truncated) {
+    <p class="truncated-message" role="status">
+      El archivo contiene más filas. La vista previa muestra únicamente las primeras 20.
+    </p>
+  }
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          @for (column of preview().columns; track column) {
+            <th scope="col">{{ column }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @if (preview().rows.length === 0) {
+          <tr>
+            <td class="empty-table" [attr.colspan]="preview().columns.length || 1">
+              El archivo contiene encabezados, pero no filas de datos.
+            </td>
+          </tr>
+        } @else {
+          @for (row of preview().rows; track $index) {
+            <tr>
+              @for (column of preview().columns; track column) {
+                <td>{{ cellValue(row, column) }}</td>
+              }
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

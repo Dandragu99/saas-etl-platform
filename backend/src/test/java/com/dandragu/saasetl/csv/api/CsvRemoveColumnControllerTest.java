@@ -21,6 +21,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -31,23 +33,32 @@ import com.dandragu.saasetl.common.api.error.ApiExceptionHandler;
 import com.dandragu.saasetl.csv.application.CsvPreviewCommand;
 import com.dandragu.saasetl.csv.application.CsvPreviewError;
 import com.dandragu.saasetl.csv.application.CsvPreviewException;
+import com.dandragu.saasetl.csv.application.CsvFileValidator;
 import com.dandragu.saasetl.csv.application.RemoveColumnCommand;
+import com.dandragu.saasetl.csv.application.RemoveColumnDownloadResult;
 import com.dandragu.saasetl.csv.application.RemoveColumnError;
 import com.dandragu.saasetl.csv.application.RemoveColumnException;
+import com.dandragu.saasetl.csv.application.RemoveColumnDownloadService;
 import com.dandragu.saasetl.csv.application.RemoveColumnResult;
 import com.dandragu.saasetl.csv.application.RemoveColumnService;
+import com.dandragu.saasetl.csv.infrastructure.csv.CsvStreamReader;
 
 class CsvRemoveColumnControllerTest {
 
 	private static final String PATH = "/api/csv/transform/remove-column";
+	private static final String DOWNLOAD_PATH = PATH + "/download";
 
 	private RemoveColumnService removeColumnService;
+	private RemoveColumnDownloadService removeColumnDownloadService;
 	private MockMvc mockMvc;
 
 	@BeforeEach
 	void setUp() {
 		removeColumnService = org.mockito.Mockito.mock(RemoveColumnService.class);
-		CsvRemoveColumnController controller = new CsvRemoveColumnController(removeColumnService);
+		removeColumnDownloadService = org.mockito.Mockito.mock(RemoveColumnDownloadService.class);
+		CsvRemoveColumnController controller = new CsvRemoveColumnController(
+				removeColumnService,
+				removeColumnDownloadService);
 		mockMvc = MockMvcBuilders.standaloneSetup(controller)
 				.setControllerAdvice(new ApiExceptionHandler())
 				.build();
@@ -213,6 +224,54 @@ class CsvRemoveColumnControllerTest {
 				.andExpect(jsonPath("$.message").value("Se ha producido un error interno."))
 				.andExpect(content().string(org.hamcrest.Matchers.not(
 						org.hamcrest.Matchers.containsString("Sensitive internal detail"))));
+	}
+
+	@Test
+	void shouldReturnCompleteCsvDownloadWithRequiredHeaders() throws Exception {
+		byte[] transformed = "id,nombre\n1,Ana\n".getBytes(StandardCharsets.UTF_8);
+		when(removeColumnDownloadService.download(any())).thenReturn(
+				new RemoveColumnDownloadResult("clientes-sin-email.csv", transformed));
+
+		MvcResult result = mockMvc.perform(multipart(DOWNLOAD_PATH)
+						.file(csvFile("clientes.csv", "id,nombre,email\n1,Ana,ana@example.com"))
+						.param("column", "email"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentType("text/csv;charset=UTF-8"))
+				.andExpect(content().bytes(transformed))
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+						.longValue(HttpHeaders.CONTENT_LENGTH, transformed.length))
+				.andReturn();
+
+		String header = result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
+		ContentDisposition disposition = ContentDisposition.parse(header);
+		assertThat(disposition.getType()).isEqualTo("attachment");
+		assertThat(disposition.getFilename()).isEqualTo("clientes-sin-email.csv");
+	}
+
+	@Test
+	void shouldReturnJsonErrorWithoutPartialCsvForMalformedRowAfterTwenty() throws Exception {
+		RemoveColumnDownloadService actualDownloadService = new RemoveColumnDownloadService(
+				new CsvFileValidator(),
+				new CsvStreamReader());
+		MockMvc integrationMockMvc = MockMvcBuilders.standaloneSetup(
+					new CsvRemoveColumnController(removeColumnService, actualDownloadService))
+				.setControllerAdvice(new ApiExceptionHandler())
+				.build();
+		StringBuilder csv = new StringBuilder("id,email\n");
+		for (int index = 1; index <= 20; index++) {
+			csv.append(index).append(",email@example.com\n");
+		}
+		csv.append("21");
+
+		integrationMockMvc.perform(multipart(DOWNLOAD_PATH)
+						.file(csvFile("clientes.csv", csv.toString()))
+						.param("column", "email"))
+				.andExpect(status().isUnprocessableEntity())
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+				.andExpect(jsonPath("$.code").value("CSV_MALFORMED"))
+				.andExpect(jsonPath("$.path").value(DOWNLOAD_PATH))
+				.andExpect(content().string(org.hamcrest.Matchers.not(
+						org.hamcrest.Matchers.containsString("id,email"))));
 	}
 
 	private RemoveColumnResult successResult(boolean truncated) {

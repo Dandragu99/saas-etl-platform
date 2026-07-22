@@ -1,12 +1,16 @@
 package com.dandragu.saasetl.csv.api;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +20,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.dandragu.saasetl.csv.application.CsvPreviewCommand;
 import com.dandragu.saasetl.csv.application.RemoveColumnCommand;
+import com.dandragu.saasetl.csv.application.RemoveColumnDownloadCommand;
+import com.dandragu.saasetl.csv.application.RemoveColumnDownloadResult;
+import com.dandragu.saasetl.csv.application.RemoveColumnDownloadService;
 import com.dandragu.saasetl.csv.application.RemoveColumnResult;
 import com.dandragu.saasetl.csv.application.RemoveColumnService;
 
@@ -24,11 +31,44 @@ import com.dandragu.saasetl.csv.application.RemoveColumnService;
 public class CsvRemoveColumnController {
 
 	private static final String TRANSFORMATION_TYPE = "REMOVE_COLUMN";
+	private static final MediaType CSV_UTF_8 = new MediaType(
+			"text",
+			"csv",
+			StandardCharsets.UTF_8);
 
 	private final RemoveColumnService removeColumnService;
+	private final RemoveColumnDownloadService removeColumnDownloadService;
 
-	public CsvRemoveColumnController(RemoveColumnService removeColumnService) {
+	public CsvRemoveColumnController(
+			RemoveColumnService removeColumnService,
+			RemoveColumnDownloadService removeColumnDownloadService) {
 		this.removeColumnService = removeColumnService;
+		this.removeColumnDownloadService = removeColumnDownloadService;
+	}
+
+	@PostMapping(
+			path = "/remove-column/download",
+			consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+			produces = "text/csv;charset=UTF-8")
+	public ResponseEntity<byte[]> downloadRemovedColumn(
+			@RequestPart("file") MultipartFile file,
+			@RequestParam(name = "column", required = false) String column) throws IOException {
+		CsvPreviewCommand fileCommand = new CsvPreviewCommand(
+				file.getOriginalFilename(),
+				file.getSize(),
+				file.getInputStream());
+		RemoveColumnDownloadResult result = removeColumnDownloadService.download(
+				new RemoveColumnDownloadCommand(fileCommand, column));
+		byte[] content = result.content();
+		ContentDisposition contentDisposition = ContentDisposition.attachment()
+				.filename(result.downloadFileName(), StandardCharsets.UTF_8)
+				.build();
+
+		return ResponseEntity.ok()
+				.contentType(CSV_UTF_8)
+				.contentLength(content.length)
+				.header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+				.body(content);
 	}
 
 	@PostMapping(

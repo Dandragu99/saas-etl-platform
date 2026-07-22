@@ -33,7 +33,7 @@ class CsvPreviewServiceTest {
 	@BeforeEach
 	void setUp() {
 		csvParser = mock(CsvParser.class);
-		csvPreviewService = new CsvPreviewService(csvParser);
+		csvPreviewService = new CsvPreviewService(csvParser, new CsvFileValidator());
 	}
 
 	@Test
@@ -98,7 +98,7 @@ class CsvPreviewServiceTest {
 	void shouldRejectFileLargerThanLimitAndCloseStream() {
 		assertValidationErrorAndClosed(
 				"data.csv",
-				CsvPreviewService.MAX_FILE_SIZE + 1,
+				CsvFileValidator.MAX_FILE_SIZE + 1,
 				CsvPreviewError.FILE_TOO_LARGE);
 	}
 
@@ -121,7 +121,7 @@ class CsvPreviewServiceTest {
 		when(csvParser.parse(same(inputStream))).thenReturn(parseResult);
 
 		CsvPreviewResult result = csvPreviewService.preview(
-				new CsvPreviewCommand("data.csv", CsvPreviewService.MAX_FILE_SIZE, inputStream));
+				new CsvPreviewCommand("data.csv", CsvFileValidator.MAX_FILE_SIZE, inputStream));
 
 		assertThat(result.previewRowCount()).isEqualTo(1);
 	}

@@ -422,3 +422,149 @@ Ejemplo al intentar eliminar la única columna:
 14. Un error del archivo tiene prioridad cuando `file` y `column` son inválidos simultáneamente.
 15. Los errores usan la estructura común y no exponen detalles técnicos internos.
 16. El archivo original no se modifica, persiste ni se ofrece como descarga.
+
+## 13. Descarga completa después de eliminar una columna
+
+### 13.1. Propósito y alcance
+
+Este endpoint genera un nuevo CSV completo después de eliminar una columna. A diferencia de la vista previa transformada, procesa y devuelve todas las filas válidas del archivo.
+
+- El archivo original no se modifica ni persiste.
+- El resultado no se persiste.
+- No se crean archivos temporales.
+- No se encadenan varias transformaciones.
+- Todo el CSV se valida y genera antes de iniciar la respuesta HTTP 200.
+- Nunca se devuelve un CSV parcial como resultado correcto.
+
+### 13.2. Endpoint y petición
+
+```http
+POST /api/csv/transform/remove-column/download
+Content-Type: multipart/form-data
+```
+
+Partes multipart:
+
+| Campo | Tipo | Obligatorio | Descripción |
+| --- | --- | --- | --- |
+| `file` | archivo | Sí | Archivo sujeto a todas las reglas y límites CSV existentes. |
+| `column` | texto | Sí | Nombre literal de la columna que debe eliminarse. |
+
+Ejemplo:
+
+```bash
+curl --request POST \
+  --url http://localhost:8080/api/csv/transform/remove-column/download \
+  --form "file=@clientes.csv" \
+  --form "column=email" \
+  --output clientes-sin-email.csv
+```
+
+El archivo se valida completamente antes de devolver los errores relacionados con `column`. Por tanto, un error de contenido CSV tiene prioridad aunque el nombre de columna también sea inválido.
+
+### 13.3. Reglas de transformación
+
+- La coincidencia de `column` es exacta y distingue mayúsculas de minúsculas.
+- No se recorta ni normaliza el nombre para localizar el encabezado.
+- Un valor ausente, vacío o compuesto únicamente por espacios produce `CSV_COLUMN_REQUIRED`.
+- Una columna inexistente produce `CSV_COLUMN_NOT_FOUND`.
+- No se permite eliminar la única columna.
+- La columna se elimina del encabezado y de todas las filas.
+- Se conserva el orden original de las columnas restantes.
+- Las filas se procesan secuencialmente y no se acumulan en una colección.
+
+### 13.4. Formato del archivo resultante
+
+La respuesta correcta utiliza:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/csv; charset=UTF-8
+Content-Disposition: attachment; filename="clientes-sin-email.csv"
+Content-Length: <tamaño exacto>
+```
+
+El cuerpo contiene el CSV completo transformado.
+
+Reglas de salida:
+
+- Codificación UTF-8.
+- Sin BOM UTF-8.
+- Delimitador coma.
+- Comillas dobles conforme a las reglas CSV.
+- `QuoteMode.MINIMAL`.
+- Separador de registros `\n`.
+- Los valores no se recortan ni normalizan.
+- Los campos vacíos se conservan.
+- Las comas, comillas y saltos de línea dentro de campos se escapan correctamente.
+
+Entrada:
+
+```csv
+id,nombre,email
+1,Ana,ana@example.com
+2,Carlos,carlos@example.com
+```
+
+Con `column=email`, el cuerpo descargado es:
+
+```csv
+id,nombre
+1,Ana
+2,Carlos
+```
+
+### 13.5. Nombre descargable
+
+- Se elimina únicamente la última extensión `.csv`, sin distinguir mayúsculas de minúsculas.
+- Las extensiones anteriores se conservan.
+- El formato general es `<base>-sin-<columna>.csv`.
+- La base y la columna se sanejan únicamente para construir el filename; el valor saneado nunca se usa para buscar el encabezado.
+- El fragmento de columna tiene un máximo de 50 caracteres.
+- El filename completo tiene un máximo de 180 caracteres.
+- El truncado respeta puntos de código Unicode.
+- La cabecera se construye como `attachment` con soporte UTF-8.
+
+Ejemplos:
+
+| Entrada | Columna | Descarga |
+| --- | --- | --- |
+| `clientes.csv` | `email` | `clientes-sin-email.csv` |
+| `clientes.CSV` | `email` | `clientes-sin-email.csv` |
+| `clientes.backup.csv` | `email` | `clientes.backup-sin-email.csv` |
+
+### 13.6. Errores
+
+Se reutilizan todos los códigos públicos existentes:
+
+- `CSV_FILE_REQUIRED`
+- `CSV_FILE_EMPTY`
+- `CSV_INVALID_EXTENSION`
+- `CSV_FILE_TOO_LARGE`
+- `CSV_HEADER_MISSING`
+- `CSV_INVALID_HEADER`
+- `CSV_MALFORMED`
+- `CSV_COLUMN_REQUIRED`
+- `CSV_COLUMN_NOT_FOUND`
+- `CSV_CANNOT_REMOVE_LAST_COLUMN`
+- `UNSUPPORTED_MEDIA_TYPE`
+- `INTERNAL_ERROR`
+
+Las respuestas de error usan `application/json` y la estructura común documentada. Si se detecta un error posterior a la fila 20, no se devuelve ninguna parte del CSV generado.
+
+### 13.7. Pruebas de aceptación
+
+1. Un CSV válido devuelve HTTP 200 y todas sus filas transformadas.
+2. Un archivo con más de 20 filas incluye todas las filas en la descarga.
+3. La columna desaparece del encabezado y de todas las filas.
+4. La salida usa UTF-8, no contiene BOM y separa registros con `\n`.
+5. Los campos vacíos, comas, comillas, saltos de línea y caracteres UTF-8 se conservan correctamente.
+6. `Content-Disposition` es `attachment` y contiene un filename seguro.
+7. `Content-Length` coincide exactamente con el cuerpo.
+8. `.csv` y `.CSV` se aceptan y eliminan del nombre resultante.
+9. Las extensiones anteriores se conservan.
+10. El filename no supera 180 caracteres y el fragmento de columna no supera 50.
+11. Un error posterior a la fila 20 devuelve el JSON de error y ningún CSV parcial.
+12. Un error CSV tiene prioridad sobre un error simultáneo de `column`.
+13. Un error de columna se devuelve únicamente después de validar el archivo completo.
+14. El archivo original y el resultado no se persisten ni se escriben en archivos temporales.

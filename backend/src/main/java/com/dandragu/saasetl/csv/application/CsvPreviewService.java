@@ -3,7 +3,6 @@ package com.dandragu.saasetl.csv.application;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 
@@ -14,24 +13,22 @@ import com.dandragu.saasetl.csv.infrastructure.parser.CsvParserException;
 @Service
 public class CsvPreviewService {
 
-	static final long MAX_FILE_SIZE = 5_242_880L;
-
 	private final CsvParser csvParser;
+	private final CsvFileValidator csvFileValidator;
 
-	public CsvPreviewService(CsvParser csvParser) {
+	public CsvPreviewService(CsvParser csvParser, CsvFileValidator csvFileValidator) {
 		this.csvParser = csvParser;
+		this.csvFileValidator = csvFileValidator;
 	}
 
 	public CsvPreviewResult preview(CsvPreviewCommand command) {
-		if (command == null || command.content() == null) {
-			throw new CsvPreviewException(
-					CsvPreviewError.FILE_REQUIRED,
-					"A CSV file is required.");
+		InputStream inputStream = command == null ? null : command.content();
+		if (inputStream == null) {
+			csvFileValidator.validateAndGetSafeFileName(command);
 		}
 
-		try (InputStream content = command.content()) {
-			validateSize(command.size());
-			String safeFileName = validateAndGetSafeFileName(command.originalFileName());
+		try (InputStream content = inputStream) {
+			String safeFileName = csvFileValidator.validateAndGetSafeFileName(command);
 			CsvParseResult parseResult = parse(content);
 
 			return toPreviewResult(safeFileName, parseResult);
@@ -45,47 +42,6 @@ public class CsvPreviewService {
 					"The CSV file could not be closed.",
 					exception);
 		}
-	}
-
-	private void validateSize(long size) {
-		if (size <= 0) {
-			throw new CsvPreviewException(
-					CsvPreviewError.FILE_EMPTY,
-					"The CSV file is empty.");
-		}
-
-		if (size > MAX_FILE_SIZE) {
-			throw new CsvPreviewException(
-					CsvPreviewError.FILE_TOO_LARGE,
-					"The CSV file exceeds the maximum allowed size.");
-		}
-	}
-
-	private String validateAndGetSafeFileName(String originalFileName) {
-		if (originalFileName == null || originalFileName.isBlank()) {
-			throw invalidExtension();
-		}
-
-		String safeFileName = getBaseName(originalFileName);
-		if (safeFileName.isBlank()
-				|| !safeFileName.toLowerCase(Locale.ROOT).endsWith(".csv")) {
-			throw invalidExtension();
-		}
-
-		return safeFileName;
-	}
-
-	private String getBaseName(String originalFileName) {
-		int lastForwardSlash = originalFileName.lastIndexOf('/');
-		int lastBackwardSlash = originalFileName.lastIndexOf('\\');
-		int lastSeparator = Math.max(lastForwardSlash, lastBackwardSlash);
-		return originalFileName.substring(lastSeparator + 1);
-	}
-
-	private CsvPreviewException invalidExtension() {
-		return new CsvPreviewException(
-				CsvPreviewError.INVALID_EXTENSION,
-				"The file must have a .csv extension.");
 	}
 
 	private CsvParseResult parse(InputStream content) {

@@ -11,6 +11,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.dandragu.saasetl.csv.infrastructure.csv.CsvStreamReader;
+
 class CsvParserTest {
 
 	private static final byte[] UTF_8_BOM = {
@@ -19,7 +21,7 @@ class CsvParserTest {
 			(byte) 0xBF
 	};
 
-	private final CsvParser csvParser = new CsvParser();
+	private final CsvParser csvParser = new CsvParser(new CsvStreamReader());
 
 	@Test
 	void shouldParseSimpleCsv() {

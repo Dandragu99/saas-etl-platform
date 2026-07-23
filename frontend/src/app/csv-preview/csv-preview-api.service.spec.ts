@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs';
 import { CsvPreviewApiService } from './csv-preview-api.service';
 import {
   ApiErrorResponse,
+  CsvDownloadResult,
   CsvRemoveColumnResponse,
   CsvPreviewRequestError,
   CsvPreviewResponse,
@@ -135,6 +136,139 @@ describe('CsvPreviewApiService', () => {
     );
   });
 
+  it('should request the complete transformed CSV with the same file and column', async () => {
+    const file = new File(['id,email\n1,ana@example.com'], 'clientes.csv', {
+      type: 'text/csv',
+    });
+    const responseBlob = new Blob(['id\n1\n'], { type: 'text/csv;charset=UTF-8' });
+
+    const responsePromise = firstValueFrom(service.downloadRemovedColumn(file, 'email'));
+    const request = httpTestingController.expectOne(
+      '/api/csv/transform/remove-column/download',
+    );
+
+    expect(request.request.method).toBe('POST');
+    expect(request.request.responseType).toBe('blob');
+    expect(request.request.body).toBeInstanceOf(FormData);
+    const formData = request.request.body as FormData;
+    expect(formData.get('file')).toBe(file);
+    expect(formData.get('column')).toBe('email');
+    expect(request.request.headers.has('Content-Type')).toBe(false);
+
+    request.flush(responseBlob, {
+      headers: {
+        'Content-Disposition': 'attachment; filename="clientes-sin-email.csv"',
+      },
+    });
+
+    const result = await responsePromise;
+    expect(result.blob).toBe(responseBlob);
+    expect(result.fileName).toBe('clientes-sin-email.csv');
+  });
+
+  it('should decode UTF-8 filename* and prefer it over filename', async () => {
+    const responsePromise = downloadWithHeader(
+      service,
+      httpTestingController,
+      `attachment; filename="fallback.csv"; filename*=UTF-8''clientes-sin-correo%20electr%C3%B3nico.csv`,
+    );
+
+    await expect(responsePromise).resolves.toMatchObject({
+      fileName: 'clientes-sin-correo electrónico.csv',
+    });
+  });
+
+  it('should preserve plus signs in filename*', async () => {
+    const responsePromise = downloadWithHeader(
+      service,
+      httpTestingController,
+      `attachment; filename*=UTF-8''clientes+archivo.csv`,
+    );
+
+    await expect(responsePromise).resolves.toMatchObject({
+      fileName: 'clientes+archivo.csv',
+    });
+  });
+
+  it('should use the safe fallback when the filename is missing or invalid', async () => {
+    const headers = [
+      null,
+      `attachment; filename*=UTF-8''..%2Fsecret.csv`,
+      `attachment; filename*=UTF-8''control%00.csv`,
+      `attachment; filename*=UTF-8''invalid%ZZ.csv`,
+      'attachment; filename=".."',
+    ];
+
+    for (const header of headers) {
+      const responsePromise = downloadWithHeader(service, httpTestingController, header);
+      await expect(responsePromise).resolves.toMatchObject({
+        fileName: 'transformed.csv',
+      });
+    }
+  });
+
+  it('should convert a JSON API error received as Blob', async () => {
+    const file = new File(['id,email'], 'clientes.csv', { type: 'text/csv' });
+    const apiError: ApiErrorResponse = {
+      code: 'CSV_COLUMN_NOT_FOUND',
+      message: 'La columna indicada no existe en el archivo CSV.',
+      status: 422,
+      path: '/api/csv/transform/remove-column/download',
+      timestamp: '2026-07-23T08:00:00Z',
+    };
+
+    const responsePromise = firstValueFrom(service.downloadRemovedColumn(file, 'missing'));
+    const request = httpTestingController.expectOne(
+      '/api/csv/transform/remove-column/download',
+    );
+    request.flush(new Blob([JSON.stringify(apiError)], { type: 'application/json' }), {
+      status: 422,
+      statusText: 'Unprocessable Entity',
+    });
+
+    await expect(responsePromise).rejects.toEqual(
+      new CsvPreviewRequestError(
+        'CSV_COLUMN_NOT_FOUND',
+        'La columna indicada no existe en el archivo CSV.',
+        422,
+      ),
+    );
+  });
+
+  it('should hide technical Blob error content', async () => {
+    const file = new File(['id,email'], 'clientes.csv', { type: 'text/csv' });
+
+    const responsePromise = firstValueFrom(service.downloadRemovedColumn(file, 'email'));
+    const request = httpTestingController.expectOne(
+      '/api/csv/transform/remove-column/download',
+    );
+    request.flush(new Blob(['Sensitive stack trace'], { type: 'text/plain' }), {
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+
+    await expect(responsePromise).rejects.toMatchObject({
+      code: 'INTERNAL_ERROR',
+      message: 'No se pudo procesar el archivo. Inténtalo de nuevo.',
+      status: 500,
+    });
+  });
+
+  it('should return a safe network error for a download', async () => {
+    const file = new File(['id,email'], 'clientes.csv', { type: 'text/csv' });
+
+    const responsePromise = firstValueFrom(service.downloadRemovedColumn(file, 'email'));
+    const request = httpTestingController.expectOne(
+      '/api/csv/transform/remove-column/download',
+    );
+    request.error(new ProgressEvent('network error'));
+
+    await expect(responsePromise).rejects.toMatchObject({
+      code: 'NETWORK_ERROR',
+      status: 0,
+    });
+  });
+
   it('should hide an unknown technical response', async () => {
     const file = new File(['content'], 'clientes.csv', { type: 'text/csv' });
 
@@ -165,3 +299,21 @@ describe('CsvPreviewApiService', () => {
     });
   });
 });
+
+function downloadWithHeader(
+  service: CsvPreviewApiService,
+  httpTestingController: HttpTestingController,
+  contentDisposition: string | null,
+): Promise<CsvDownloadResult> {
+  const file = new File(['id,email\n1,ana@example.com'], 'clientes.csv', {
+    type: 'text/csv',
+  });
+  const responsePromise = firstValueFrom(service.downloadRemovedColumn(file, 'email'));
+  const request = httpTestingController.expectOne(
+    '/api/csv/transform/remove-column/download',
+  );
+  const headers =
+    contentDisposition === null ? undefined : { 'Content-Disposition': contentDisposition };
+  request.flush(new Blob(['id\n1\n'], { type: 'text/csv' }), { headers });
+  return responsePromise;
+}

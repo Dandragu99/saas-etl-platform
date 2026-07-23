@@ -73,13 +73,27 @@
         }
       </select>
 
-      <button type="button" [disabled]="!canRemoveColumn()" (click)="removeColumn()">
+      <div class="transformation-actions">
+        <button type="button" [disabled]="!canRemoveColumn()" (click)="removeColumn()">
         @if (removeColumnStatus() === 'loading') {
           Eliminando columna…
         } @else {
           Eliminar columna
         }
-      </button>
+        </button>
+
+        <button
+          type="button"
+          [disabled]="!canDownload()"
+          (click)="downloadRemovedColumn()"
+        >
+          @if (downloadStatus() === 'loading') {
+            Descargando CSV…
+          } @else {
+            Descargar CSV transformado
+          }
+        </button>
+      </div>
 
       @if (removeColumnStatus() === 'loading') {
         <p class="status-message" role="status">Estamos preparando la vista previa transformada.</p>
@@ -90,6 +104,25 @@
           <strong>No se pudo eliminar la columna.</strong>
           <span>{{ message }}</span>
         </div>
+      }
+
+      @if (downloadStatus() === 'loading') {
+        <p class="status-message" role="status">
+          Estamos generando el CSV completo para la descarga.
+        </p>
+      }
+
+      @if (downloadStatus() === 'error' && downloadErrorMessage(); as message) {
+        <div class="error-message download-error" role="alert">
+          <strong>No se pudo descargar el CSV transformado.</strong>
+          <span>{{ message }}</span>
+        </div>
+      }
+
+      @if (downloadStatus() === 'success' && downloadedFileName(); as fileName) {
+        <p class="download-success" role="status">
+          Descarga iniciada: <strong>{{ fileName }}</strong>
+        </p>
       }
     </section>
 

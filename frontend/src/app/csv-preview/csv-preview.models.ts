@@ -19,6 +19,11 @@ export interface CsvRemoveColumnResponse extends CsvTabularPreview {
   readonly transformation: RemoveColumnTransformation;
 }
 
+export interface CsvDownloadResult {
+  readonly blob: Blob;
+  readonly fileName: string;
+}
+
 export interface ApiErrorResponse {
   readonly code: string;
   readonly message: string;

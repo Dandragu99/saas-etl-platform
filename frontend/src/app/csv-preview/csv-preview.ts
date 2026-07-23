@@ -1,8 +1,10 @@
+import { DOCUMENT } from '@angular/common';
 import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { CsvPreviewApiService } from './csv-preview-api.service';
 import {
+  CsvDownloadResult,
   CsvRemoveColumnResponse,
   CsvPreviewRequestError,
   CsvPreviewResponse,
@@ -11,6 +13,7 @@ import { CsvPreviewTable } from './csv-preview-table/csv-preview-table';
 
 type CsvPreviewStatus = 'idle' | 'loading' | 'success' | 'error';
 type RemoveColumnStatus = 'idle' | 'loading' | 'success' | 'error';
+type DownloadStatus = 'idle' | 'loading' | 'success' | 'error';
 
 @Component({
   selector: 'app-csv-preview',
@@ -20,7 +23,9 @@ type RemoveColumnStatus = 'idle' | 'loading' | 'success' | 'error';
 })
 export class CsvPreview implements OnDestroy {
   private readonly csvPreviewApiService = inject(CsvPreviewApiService);
+  private readonly document = inject(DOCUMENT);
   private transformationSubscription: Subscription | null = null;
+  private downloadSubscription: Subscription | null = null;
 
   protected readonly selectedFile = signal<File | null>(null);
   protected readonly previewStatus = signal<CsvPreviewStatus>('idle');
@@ -30,6 +35,9 @@ export class CsvPreview implements OnDestroy {
   protected readonly removeColumnStatus = signal<RemoveColumnStatus>('idle');
   protected readonly transformedPreview = signal<CsvRemoveColumnResponse | null>(null);
   protected readonly transformationErrorMessage = signal<string | null>(null);
+  protected readonly downloadStatus = signal<DownloadStatus>('idle');
+  protected readonly downloadErrorMessage = signal<string | null>(null);
+  protected readonly downloadedFileName = signal<string | null>(null);
   protected readonly canPreview = computed(
     () => this.selectedFile() !== null && this.previewStatus() !== 'loading',
   );
@@ -39,16 +47,24 @@ export class CsvPreview implements OnDestroy {
       this.selectedColumn() !== null &&
       this.removeColumnStatus() !== 'loading',
   );
+  protected readonly canDownload = computed(
+    () =>
+      this.selectedFile() !== null &&
+      this.selectedColumn() !== null &&
+      this.downloadStatus() !== 'loading',
+  );
 
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.cancelTransformation();
+    this.cancelDownload();
     this.selectedFile.set(input.files?.item(0) ?? null);
     this.previewStatus.set('idle');
     this.previewResult.set(null);
     this.previewErrorMessage.set(null);
     this.selectedColumn.set(null);
     this.resetTransformationState();
+    this.resetDownloadState();
   }
 
   protected submit(): void {
@@ -62,7 +78,9 @@ export class CsvPreview implements OnDestroy {
     this.previewErrorMessage.set(null);
     this.selectedColumn.set(null);
     this.cancelTransformation();
+    this.cancelDownload();
     this.resetTransformationState();
+    this.resetDownloadState();
 
     this.csvPreviewApiService.preview(file).subscribe({
       next: (result) => {
@@ -79,8 +97,10 @@ export class CsvPreview implements OnDestroy {
   protected onColumnSelected(event: Event): void {
     const select = event.target as HTMLSelectElement;
     this.cancelTransformation();
+    this.cancelDownload();
     this.selectedColumn.set(select.value || null);
     this.resetTransformationState();
+    this.resetDownloadState();
   }
 
   protected removeColumn(): void {
@@ -109,8 +129,43 @@ export class CsvPreview implements OnDestroy {
       });
   }
 
+  protected downloadRemovedColumn(): void {
+    const file = this.selectedFile();
+    const column = this.selectedColumn();
+    if (file === null || column === null || this.downloadStatus() === 'loading') {
+      return;
+    }
+
+    this.cancelDownload();
+    this.downloadStatus.set('loading');
+    this.downloadErrorMessage.set(null);
+    this.downloadedFileName.set(null);
+
+    this.downloadSubscription = this.csvPreviewApiService
+      .downloadRemovedColumn(file, column)
+      .subscribe({
+        next: (result) => {
+          try {
+            this.startBrowserDownload(result);
+            this.downloadedFileName.set(result.fileName);
+            this.downloadStatus.set('success');
+          } catch {
+            this.downloadErrorMessage.set(
+              'No se pudo iniciar la descarga. Inténtalo de nuevo.',
+            );
+            this.downloadStatus.set('error');
+          }
+        },
+        error: (error: unknown) => {
+          this.downloadErrorMessage.set(this.toSafeMessage(error));
+          this.downloadStatus.set('error');
+        },
+      });
+  }
+
   ngOnDestroy(): void {
     this.cancelTransformation();
+    this.cancelDownload();
   }
 
   private cancelTransformation(): void {
@@ -118,10 +173,40 @@ export class CsvPreview implements OnDestroy {
     this.transformationSubscription = null;
   }
 
+  private cancelDownload(): void {
+    this.downloadSubscription?.unsubscribe();
+    this.downloadSubscription = null;
+  }
+
   private resetTransformationState(): void {
     this.removeColumnStatus.set('idle');
     this.transformedPreview.set(null);
     this.transformationErrorMessage.set(null);
+  }
+
+  private resetDownloadState(): void {
+    this.downloadStatus.set('idle');
+    this.downloadErrorMessage.set(null);
+    this.downloadedFileName.set(null);
+  }
+
+  private startBrowserDownload(result: CsvDownloadResult): void {
+    const objectUrl = URL.createObjectURL(result.blob);
+    let link: HTMLAnchorElement | null = null;
+
+    try {
+      link = this.document.createElement('a');
+      link.href = objectUrl;
+      link.download = result.fileName;
+      this.document.body.appendChild(link);
+      link.click();
+    } finally {
+      try {
+        link?.remove();
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    }
   }
 
   private toSafeMessage(error: unknown): string {

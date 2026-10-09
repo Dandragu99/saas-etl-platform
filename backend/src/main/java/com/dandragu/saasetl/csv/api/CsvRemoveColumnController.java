@@ -22,9 +22,9 @@ import com.dandragu.saasetl.csv.application.CsvPreviewCommand;
 import com.dandragu.saasetl.csv.application.RemoveColumnCommand;
 import com.dandragu.saasetl.csv.application.RemoveColumnDownloadCommand;
 import com.dandragu.saasetl.csv.application.RemoveColumnDownloadResult;
-import com.dandragu.saasetl.csv.application.RemoveColumnDownloadService;
 import com.dandragu.saasetl.csv.application.RemoveColumnResult;
 import com.dandragu.saasetl.csv.application.RemoveColumnService;
+import com.dandragu.saasetl.execution.application.RemoveColumnExecutionService;
 
 @RestController
 @RequestMapping("/api/csv/transform")
@@ -37,13 +37,13 @@ public class CsvRemoveColumnController {
 			StandardCharsets.UTF_8);
 
 	private final RemoveColumnService removeColumnService;
-	private final RemoveColumnDownloadService removeColumnDownloadService;
+	private final RemoveColumnExecutionService removeColumnExecutionService;
 
 	public CsvRemoveColumnController(
 			RemoveColumnService removeColumnService,
-			RemoveColumnDownloadService removeColumnDownloadService) {
+			RemoveColumnExecutionService removeColumnExecutionService) {
 		this.removeColumnService = removeColumnService;
-		this.removeColumnDownloadService = removeColumnDownloadService;
+		this.removeColumnExecutionService = removeColumnExecutionService;
 	}
 
 	@PostMapping(
@@ -57,7 +57,7 @@ public class CsvRemoveColumnController {
 				file.getOriginalFilename(),
 				file.getSize(),
 				file.getInputStream());
-		RemoveColumnDownloadResult result = removeColumnDownloadService.download(
+		RemoveColumnDownloadResult result = removeColumnExecutionService.download(
 				new RemoveColumnDownloadCommand(fileCommand, column));
 		byte[] content = result.content();
 		ContentDisposition contentDisposition = ContentDisposition.attachment()

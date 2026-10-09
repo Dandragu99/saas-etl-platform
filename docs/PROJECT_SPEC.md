@@ -252,7 +252,9 @@ Separación inicial:
 
 ### Base de datos
 
-Se utilizará PostgreSQL cuando se introduzcan usuarios, ejecuciones e historial.
+La primera versión del seguimiento operativo de ejecuciones utiliza un historial en memoria,
+volátil y limitado a 100 entradas. Se utilizará PostgreSQL cuando se introduzcan usuarios y
+el historial persistente definitivo.
 
 Los archivos no se almacenarán directamente dentro de PostgreSQL.
 

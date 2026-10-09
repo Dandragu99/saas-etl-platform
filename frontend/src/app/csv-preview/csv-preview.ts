@@ -10,6 +10,7 @@ import {
   CsvPreviewResponse,
 } from './csv-preview.models';
 import { CsvPreviewTable } from './csv-preview-table/csv-preview-table';
+import { EtlExecutionHistory } from '../execution-history/etl-execution-history';
 
 type CsvPreviewStatus = 'idle' | 'loading' | 'success' | 'error';
 type RemoveColumnStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -17,7 +18,7 @@ type DownloadStatus = 'idle' | 'loading' | 'success' | 'error';
 
 @Component({
   selector: 'app-csv-preview',
-  imports: [CsvPreviewTable],
+  imports: [CsvPreviewTable, EtlExecutionHistory],
   templateUrl: './csv-preview.html',
   styleUrl: './csv-preview.css',
 })
@@ -38,6 +39,7 @@ export class CsvPreview implements OnDestroy {
   protected readonly downloadStatus = signal<DownloadStatus>('idle');
   protected readonly downloadErrorMessage = signal<string | null>(null);
   protected readonly downloadedFileName = signal<string | null>(null);
+  protected readonly historyRefreshRequest = signal(0);
   protected readonly canPreview = computed(
     () => this.selectedFile() !== null && this.previewStatus() !== 'loading',
   );
@@ -145,18 +147,18 @@ export class CsvPreview implements OnDestroy {
       .downloadRemovedColumn(file, column)
       .subscribe({
         next: (result) => {
+          this.requestHistoryRefresh();
           try {
             this.startBrowserDownload(result);
             this.downloadedFileName.set(result.fileName);
             this.downloadStatus.set('success');
           } catch {
-            this.downloadErrorMessage.set(
-              'No se pudo iniciar la descarga. Inténtalo de nuevo.',
-            );
+            this.downloadErrorMessage.set('No se pudo iniciar la descarga. Inténtalo de nuevo.');
             this.downloadStatus.set('error');
           }
         },
         error: (error: unknown) => {
+          this.requestHistoryRefresh();
           this.downloadErrorMessage.set(this.toSafeMessage(error));
           this.downloadStatus.set('error');
         },
@@ -188,6 +190,10 @@ export class CsvPreview implements OnDestroy {
     this.downloadStatus.set('idle');
     this.downloadErrorMessage.set(null);
     this.downloadedFileName.set(null);
+  }
+
+  private requestHistoryRefresh(): void {
+    this.historyRefreshRequest.update((value) => value + 1);
   }
 
   private startBrowserDownload(result: CsvDownloadResult): void {

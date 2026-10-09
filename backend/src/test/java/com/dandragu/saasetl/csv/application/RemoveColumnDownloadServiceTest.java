@@ -40,6 +40,7 @@ class RemoveColumnDownloadServiceTest {
 		assertThat(output.lines()).hasSize(26);
 		assertThat(output).startsWith("id,nombre\n1,Nombre 1\n");
 		assertThat(output).endsWith("25,Nombre 25\n");
+		assertThat(result.processedRecordCount()).isEqualTo(25);
 	}
 
 	@Test
@@ -163,7 +164,7 @@ class RemoveColumnDownloadServiceTest {
 	@Test
 	void shouldProtectContentWithDefensiveCopies() {
 		byte[] original = "id\n1\n".getBytes(StandardCharsets.UTF_8);
-		RemoveColumnDownloadResult result = new RemoveColumnDownloadResult("result.csv", original);
+		RemoveColumnDownloadResult result = new RemoveColumnDownloadResult("result.csv", original, 1);
 		original[0] = 'X';
 		byte[] firstRead = result.content();
 		firstRead[0] = 'Y';

@@ -42,6 +42,9 @@ import com.dandragu.saasetl.csv.application.RemoveColumnDownloadService;
 import com.dandragu.saasetl.csv.application.RemoveColumnResult;
 import com.dandragu.saasetl.csv.application.RemoveColumnService;
 import com.dandragu.saasetl.csv.infrastructure.csv.CsvStreamReader;
+import com.dandragu.saasetl.execution.application.EtlExecutionHistoryService;
+import com.dandragu.saasetl.execution.application.RemoveColumnExecutionService;
+import com.dandragu.saasetl.execution.infrastructure.InMemoryEtlExecutionRepository;
 
 class CsvRemoveColumnControllerTest {
 
@@ -49,16 +52,16 @@ class CsvRemoveColumnControllerTest {
 	private static final String DOWNLOAD_PATH = PATH + "/download";
 
 	private RemoveColumnService removeColumnService;
-	private RemoveColumnDownloadService removeColumnDownloadService;
+	private RemoveColumnExecutionService removeColumnExecutionService;
 	private MockMvc mockMvc;
 
 	@BeforeEach
 	void setUp() {
 		removeColumnService = org.mockito.Mockito.mock(RemoveColumnService.class);
-		removeColumnDownloadService = org.mockito.Mockito.mock(RemoveColumnDownloadService.class);
+		removeColumnExecutionService = org.mockito.Mockito.mock(RemoveColumnExecutionService.class);
 		CsvRemoveColumnController controller = new CsvRemoveColumnController(
 				removeColumnService,
-				removeColumnDownloadService);
+				removeColumnExecutionService);
 		mockMvc = MockMvcBuilders.standaloneSetup(controller)
 				.setControllerAdvice(new ApiExceptionHandler())
 				.build();
@@ -229,8 +232,8 @@ class CsvRemoveColumnControllerTest {
 	@Test
 	void shouldReturnCompleteCsvDownloadWithRequiredHeaders() throws Exception {
 		byte[] transformed = "id,nombre\n1,Ana\n".getBytes(StandardCharsets.UTF_8);
-		when(removeColumnDownloadService.download(any())).thenReturn(
-				new RemoveColumnDownloadResult("clientes-sin-email.csv", transformed));
+		when(removeColumnExecutionService.download(any())).thenReturn(
+				new RemoveColumnDownloadResult("clientes-sin-email.csv", transformed, 1));
 
 		MvcResult result = mockMvc.perform(multipart(DOWNLOAD_PATH)
 						.file(csvFile("clientes.csv", "id,nombre,email\n1,Ana,ana@example.com"))
@@ -253,8 +256,11 @@ class CsvRemoveColumnControllerTest {
 		RemoveColumnDownloadService actualDownloadService = new RemoveColumnDownloadService(
 				new CsvFileValidator(),
 				new CsvStreamReader());
+		RemoveColumnExecutionService actualExecutionService = new RemoveColumnExecutionService(
+				actualDownloadService,
+				new EtlExecutionHistoryService(new InMemoryEtlExecutionRepository()));
 		MockMvc integrationMockMvc = MockMvcBuilders.standaloneSetup(
-					new CsvRemoveColumnController(removeColumnService, actualDownloadService))
+					new CsvRemoveColumnController(removeColumnService, actualExecutionService))
 				.setControllerAdvice(new ApiExceptionHandler())
 				.build();
 		StringBuilder csv = new StringBuilder("id,email\n");

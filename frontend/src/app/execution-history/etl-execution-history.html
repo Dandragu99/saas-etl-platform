@@ -1,0 +1,76 @@
+<section class="history-card" aria-labelledby="execution-history-title">
+  <header class="history-header">
+    <div>
+      <p class="eyebrow">Seguimiento</p>
+      <h2 id="execution-history-title">Historial de ejecuciones</h2>
+      <p>Consulta las últimas transformaciones completas procesadas por el backend.</p>
+    </div>
+
+    <button type="button" [disabled]="status() === 'loading'" (click)="refresh()">
+      @if (status() === 'loading') {
+        Actualizando…
+      } @else {
+        Actualizar historial
+      }
+    </button>
+  </header>
+
+  @if (status() === 'loading') {
+    <p class="history-status" role="status">Cargando historial de ejecuciones…</p>
+  }
+
+  @if (status() === 'error' && errorMessage(); as message) {
+    <div class="history-error" role="alert">
+      <strong>No se pudo obtener el historial.</strong>
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  @if (status() === 'success' && executions().length === 0) {
+    <div class="history-empty" role="status">
+      <strong>Todavía no hay ejecuciones.</strong>
+      <span>Descarga un CSV transformado para registrar la primera.</span>
+    </div>
+  }
+
+  @if (status() === 'success' && executions().length > 0) {
+    <ol class="execution-list" aria-label="Ejecuciones ETL recientes">
+      @for (execution of executions(); track execution.id) {
+        <li class="execution-item">
+          <div class="execution-heading">
+            <div>
+              <span class="execution-type">{{ transformationLabel(execution.type) }}</span>
+              <code>{{ execution.id }}</code>
+            </div>
+            <span class="status-badge" [attr.data-status]="execution.status">
+              {{ statusLabel(execution.status) }}
+            </span>
+          </div>
+
+          <dl class="execution-details">
+            <div>
+              <dt>Inicio</dt>
+              <dd>
+                <time [attr.datetime]="execution.startedAt">
+                  {{ execution.startedAt | date: 'dd/MM/yyyy, HH:mm:ss' }}
+                </time>
+              </dd>
+            </div>
+            <div>
+              <dt>Duración</dt>
+              <dd>{{ duration(execution) }}</dd>
+            </div>
+            <div>
+              <dt>Registros procesados</dt>
+              <dd>{{ execution.processedRecordCount ?? 'No disponible' }}</dd>
+            </div>
+          </dl>
+
+          @if (execution.errorMessage; as errorMessage) {
+            <p class="execution-error"><strong>Error:</strong> {{ errorMessage }}</p>
+          }
+        </li>
+      }
+    </ol>
+  }
+</section>

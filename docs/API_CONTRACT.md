@@ -568,3 +568,66 @@ Las respuestas de error usan `application/json` y la estructura común documenta
 12. Un error CSV tiene prioridad sobre un error simultáneo de `column`.
 13. Un error de columna se devuelve únicamente después de validar el archivo completo.
 14. El archivo original y el resultado no se persisten ni se escriben en archivos temporales.
+
+## 14. Historial de ejecuciones ETL
+
+### 14.1. Endpoint
+
+```http
+GET /api/etl/executions
+Accept: application/json
+```
+
+La respuesta contiene las ejecuciones más recientes, ordenadas desde la más nueva hasta la más antigua.
+
+```json
+[
+  {
+    "id": "ca5b9df0-28ae-4cd1-859a-075a28297d97",
+    "type": "REMOVE_COLUMN",
+    "status": "SUCCESS",
+    "startedAt": "2026-10-09T10:00:00Z",
+    "finishedAt": "2026-10-09T10:00:01Z",
+    "processedRecordCount": 25,
+    "errorMessage": null
+  }
+]
+```
+
+Cuando no existen ejecuciones, la respuesta es un array vacío:
+
+```json
+[]
+```
+
+### 14.2. Campos
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `id` | UUID | Identificador único de la ejecución. |
+| `type` | texto | Tipo de transformación. Actualmente, `REMOVE_COLUMN`. |
+| `status` | texto | `PENDING`, `RUNNING`, `SUCCESS` o `FAILED`. |
+| `startedAt` | fecha ISO-8601 | Momento de creación de la ejecución. |
+| `finishedAt` | fecha ISO-8601 o `null` | Momento de finalización, si la ejecución ha terminado. |
+| `processedRecordCount` | número o `null` | Filas de datos procesadas correctamente; no incluye el encabezado. |
+| `errorMessage` | texto o `null` | Mensaje público y controlado para una ejecución fallida. |
+
+### 14.3. Reglas y límites
+
+- Esta primera versión registra las descargas completas de eliminación de columna.
+- El historial se almacena en memoria y contiene como máximo las últimas 100 ejecuciones.
+- El historial es volátil y desaparece al reiniciar el backend.
+- No se almacenan archivos, contenido CSV, nombres de archivo, nombres de columnas, datos personales, excepciones ni stack traces.
+- Si una ejecución antigua es expulsada por el límite de 100, su finalización posterior no debe interrumpir la transformación CSV.
+- Los errores de validación, lectura o generación detectados dentro del caso de uso pueden registrarse como `FAILED`.
+- Los errores multipart anteriores al controlador no generan una ejecución.
+- Los fallos de transmisión HTTP posteriores a la generación completa no pueden detectarse de forma fiable y pueden permanecer como `SUCCESS`.
+
+### 14.4. Pruebas de aceptación
+
+1. Sin ejecuciones, el endpoint devuelve HTTP 200 y `[]`.
+2. Una descarga válida genera una ejecución `SUCCESS` con fecha final y número de registros.
+3. Una descarga que falla durante la validación o generación genera una ejecución `FAILED` con un mensaje seguro.
+4. El historial nunca contiene más de 100 elementos.
+5. Las peticiones concurrentes no corrompen el historial ni interrumpen una descarga por la expulsión de una entrada antigua.
+6. La respuesta no contiene nombres de archivo, columnas, contenido CSV ni detalles técnicos de excepciones.

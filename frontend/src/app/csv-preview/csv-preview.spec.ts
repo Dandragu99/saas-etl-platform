@@ -10,6 +10,8 @@ import {
   CsvPreviewRequestError,
   CsvPreviewResponse,
 } from './csv-preview.models';
+import { EtlExecutionApiService } from '../execution-history/etl-execution-api.service';
+import { EtlExecution } from '../execution-history/etl-execution.models';
 
 const PREVIEW_RESPONSE: CsvPreviewResponse = {
   fileName: 'clientes.csv',
@@ -50,8 +52,15 @@ class CsvPreviewApiServiceStub {
   }
 }
 
+class EtlExecutionApiServiceStub {
+  getExecutions(): Observable<readonly EtlExecution[]> {
+    return of([]);
+  }
+}
+
 describe('CsvPreview', () => {
   let apiService: CsvPreviewApiServiceStub;
+  let historyApiService: EtlExecutionApiServiceStub;
 
   beforeEach(async () => {
     Object.defineProperty(URL, 'createObjectURL', {
@@ -68,10 +77,14 @@ describe('CsvPreview', () => {
     });
 
     apiService = new CsvPreviewApiServiceStub();
+    historyApiService = new EtlExecutionApiServiceStub();
 
     await TestBed.configureTestingModule({
       imports: [CsvPreview],
-      providers: [{ provide: CsvPreviewApiService, useValue: apiService }],
+      providers: [
+        { provide: CsvPreviewApiService, useValue: apiService },
+        { provide: EtlExecutionApiService, useValue: historyApiService },
+      ],
     }).compileComponents();
   });
 
@@ -104,7 +117,9 @@ describe('CsvPreview', () => {
     const options = [...select.options].map((option) => option.textContent?.trim());
     expect(options).toEqual(['Selecciona una columna', 'id', 'nombre', 'email']);
     expect(select.value).toBe('');
-    expect(findButton(fixture.nativeElement as HTMLElement, 'Eliminar columna').disabled).toBe(true);
+    expect(findButton(fixture.nativeElement as HTMLElement, 'Eliminar columna').disabled).toBe(
+      true,
+    );
     expect(
       findButton(fixture.nativeElement as HTMLElement, 'Descargar CSV transformado').disabled,
     ).toBe(true);
@@ -124,6 +139,7 @@ describe('CsvPreview', () => {
 
   it('should download without requiring a transformed preview and reuse the same file', async () => {
     const downloadSpy = vi.spyOn(apiService, 'downloadRemovedColumn');
+    const historySpy = vi.spyOn(historyApiService, 'getExecutions');
     let clickedLink: HTMLAnchorElement | null = null;
     vi.mocked(HTMLAnchorElement.prototype.click).mockImplementation(function (
       this: HTMLAnchorElement,
@@ -151,6 +167,7 @@ describe('CsvPreview', () => {
     expect(document.body.contains(downloadedLink)).toBe(false);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:csv-download');
     expect(element.textContent).toContain('Descarga iniciada: clientes-sin-email.csv');
+    expect(historySpy).toHaveBeenCalledTimes(2);
   });
 
   it('should keep the file selector and original preview available while downloading', async () => {
@@ -167,22 +184,17 @@ describe('CsvPreview', () => {
     expect(element.querySelectorAll('app-csv-preview-table')).toHaveLength(1);
     expect(element.textContent).toContain('Estamos generando el CSV completo');
     expect(findButton(element, 'Descargando CSV').disabled).toBe(true);
-    expect((element.querySelector('input[type="file"]') as HTMLInputElement).disabled).toBe(
-      false,
-    );
+    expect((element.querySelector('input[type="file"]') as HTMLInputElement).disabled).toBe(false);
 
     downloadSubject.complete();
   });
 
   it('should show a safe download error separately', async () => {
+    const historySpy = vi.spyOn(historyApiService, 'getExecutions');
     vi.spyOn(apiService, 'downloadRemovedColumn').mockReturnValue(
       throwError(
         () =>
-          new CsvPreviewRequestError(
-            'CSV_COLUMN_NOT_FOUND',
-            'La columna indicada no existe.',
-            422,
-          ),
+          new CsvPreviewRequestError('CSV_COLUMN_NOT_FOUND', 'La columna indicada no existe.', 422),
       ),
     );
     const fixture = TestBed.createComponent(CsvPreview);
@@ -198,6 +210,7 @@ describe('CsvPreview', () => {
       'La columna indicada no existe.',
     );
     expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(historySpy).toHaveBeenCalledTimes(2);
   });
 
   it('should remove the link and revoke the object URL when link click fails', async () => {
@@ -292,11 +305,7 @@ describe('CsvPreview', () => {
     vi.spyOn(apiService, 'removeColumn').mockReturnValue(
       throwError(
         () =>
-          new CsvPreviewRequestError(
-            'CSV_COLUMN_NOT_FOUND',
-            'La columna indicada no existe.',
-            422,
-          ),
+          new CsvPreviewRequestError('CSV_COLUMN_NOT_FOUND', 'La columna indicada no existe.', 422),
       ),
     );
     const fixture = TestBed.createComponent(CsvPreview);

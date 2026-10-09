@@ -46,7 +46,8 @@ public class RemoveColumnDownloadService {
 
 			return new RemoveColumnDownloadResult(
 					createDownloadFileName(safeFileName, command.column()),
-					transformedContent);
+					transformedContent,
+					consumer.processedRecordCount());
 		}
 		catch (CsvPreviewException | RemoveColumnException exception) {
 			throw exception;
@@ -143,6 +144,7 @@ public class RemoveColumnDownloadService {
 		private RemoveColumnError pendingError;
 		private ByteArrayOutputStream output;
 		private CsvWriter writer;
+		private long processedRecordCount;
 
 		DownloadConsumer(String column) {
 			this.column = column;
@@ -172,6 +174,7 @@ public class RemoveColumnDownloadService {
 		public void acceptRow(List<String> row) {
 			if (writer != null) {
 				writer.writeRecord(plan.applyToRow(row));
+				processedRecordCount++;
 			}
 		}
 
@@ -188,6 +191,10 @@ public class RemoveColumnDownloadService {
 
 		boolean hasOutputBuffer() {
 			return output != null;
+		}
+
+		long processedRecordCount() {
+			return processedRecordCount;
 		}
 
 		@Override

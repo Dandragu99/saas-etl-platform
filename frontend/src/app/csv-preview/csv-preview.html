@@ -75,18 +75,14 @@
 
       <div class="transformation-actions">
         <button type="button" [disabled]="!canRemoveColumn()" (click)="removeColumn()">
-        @if (removeColumnStatus() === 'loading') {
-          Eliminando columna…
-        } @else {
-          Eliminar columna
-        }
+          @if (removeColumnStatus() === 'loading') {
+            Eliminando columna…
+          } @else {
+            Eliminar columna
+          }
         </button>
 
-        <button
-          type="button"
-          [disabled]="!canDownload()"
-          (click)="downloadRemovedColumn()"
-        >
+        <button type="button" [disabled]="!canDownload()" (click)="downloadRemovedColumn()">
           @if (downloadStatus() === 'loading') {
             Descargando CSV…
           } @else {
@@ -133,4 +129,6 @@
       <app-csv-preview-table [preview]="transformed" label="Vista previa transformada" />
     }
   }
+
+  <app-etl-execution-history [refreshRequest]="historyRefreshRequest()" />
 </main>

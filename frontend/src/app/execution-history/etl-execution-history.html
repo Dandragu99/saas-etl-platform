@@ -1,76 +1,152 @@
-<section class="history-card" aria-labelledby="execution-history-title">
+<section class="history-panel" aria-labelledby="execution-history-title">
   <header class="history-header">
     <div>
-      <p class="eyebrow">Seguimiento</p>
+      <p class="eyebrow">Actividad ETL</p>
       <h2 id="execution-history-title">Historial de ejecuciones</h2>
-      <p>Consulta las últimas transformaciones completas procesadas por el backend.</p>
+      <p>Supervisa el estado y rendimiento de las transformaciones procesadas.</p>
     </div>
-
-    <button type="button" [disabled]="status() === 'loading'" (click)="refresh()">
+    <button
+      class="refresh-button"
+      type="button"
+      [disabled]="status() === 'loading'"
+      (click)="refresh()"
+    >
       @if (status() === 'loading') {
         Actualizando…
       } @else {
-        Actualizar historial
+        Actualizar
       }
     </button>
   </header>
 
+  <div class="summary-grid" aria-label="Resumen de ejecuciones">
+    <article class="summary-card total">
+      <span>Total</span><strong>{{ summary().total }}</strong
+      ><small>Ejecuciones registradas</small>
+    </article>
+    <article class="summary-card success">
+      <span>Completadas</span><strong>{{ summary().successful }}</strong
+      ><small>Procesadas correctamente</small>
+    </article>
+    <article class="summary-card failed">
+      <span>Fallidas</span><strong>{{ summary().failed }}</strong
+      ><small>Requieren revisión</small>
+    </article>
+    <article class="summary-card progress">
+      <span>En curso</span><strong>{{ summary().inProgress }}</strong
+      ><small>Pendientes o ejecutándose</small>
+    </article>
+  </div>
+
+  <div class="history-toolbar">
+    <label for="execution-status-filter">Estado</label>
+    <select
+      id="execution-status-filter"
+      [value]="selectedStatus() ?? ''"
+      (change)="filterByStatus($event)"
+    >
+      <option value="">Todos los estados</option>
+      <option value="SUCCESS">Completadas</option>
+      <option value="FAILED">Fallidas</option>
+      <option value="RUNNING">En ejecución</option>
+      <option value="PENDING">Pendientes</option>
+    </select>
+    @if (status() === 'success') {
+      <span class="result-count">{{ totalElements() }} resultados</span>
+    }
+  </div>
+
   @if (status() === 'loading') {
-    <p class="history-status" role="status">Cargando historial de ejecuciones…</p>
+    <div class="history-status" role="status"><span class="spinner"></span>Cargando historial…</div>
   }
 
   @if (status() === 'error' && errorMessage(); as message) {
     <div class="history-error" role="alert">
-      <strong>No se pudo obtener el historial.</strong>
-      <span>{{ message }}</span>
+      <strong>No se pudo obtener el historial.</strong><span>{{ message }}</span>
+      <button type="button" (click)="refresh()">Reintentar</button>
     </div>
   }
 
   @if (status() === 'success' && executions().length === 0) {
     <div class="history-empty" role="status">
-      <strong>Todavía no hay ejecuciones.</strong>
-      <span>Descarga un CSV transformado para registrar la primera.</span>
+      <span class="empty-icon" aria-hidden="true">↗</span>
+      <strong>No hay ejecuciones para mostrar.</strong>
+      <span>
+        @if (selectedStatus()) {
+          Prueba con otro filtro de estado.
+        } @else {
+          Descarga un CSV transformado para registrar la primera.
+        }
+      </span>
     </div>
   }
 
   @if (status() === 'success' && executions().length > 0) {
-    <ol class="execution-list" aria-label="Ejecuciones ETL recientes">
-      @for (execution of executions(); track execution.id) {
-        <li class="execution-item">
-          <div class="execution-heading">
-            <div>
-              <span class="execution-type">{{ transformationLabel(execution.type) }}</span>
-              <code>{{ execution.id }}</code>
-            </div>
-            <span class="status-badge" [attr.data-status]="execution.status">
-              {{ statusLabel(execution.status) }}
-            </span>
-          </div>
-
-          <dl class="execution-details">
-            <div>
-              <dt>Inicio</dt>
-              <dd>
-                <time [attr.datetime]="execution.startedAt">
-                  {{ execution.startedAt | date: 'dd/MM/yyyy, HH:mm:ss' }}
-                </time>
-              </dd>
-            </div>
-            <div>
-              <dt>Duración</dt>
-              <dd>{{ duration(execution) }}</dd>
-            </div>
-            <div>
-              <dt>Registros procesados</dt>
-              <dd>{{ execution.processedRecordCount ?? 'No disponible' }}</dd>
-            </div>
-          </dl>
-
-          @if (execution.errorMessage; as errorMessage) {
-            <p class="execution-error"><strong>Error:</strong> {{ errorMessage }}</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Ejecución</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Inicio</th>
+            <th scope="col">Finalización</th>
+            <th scope="col">Duración</th>
+            <th scope="col" class="numeric">Filas</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (execution of executions(); track execution.id) {
+            <tr>
+              <td data-label="Ejecución">
+                <code [title]="execution.id">{{ execution.id.slice(0, 8) }}</code>
+              </td>
+              <td data-label="Tipo">{{ transformationLabel(execution.type) }}</td>
+              <td data-label="Estado">
+                <span class="status-badge" [attr.data-status]="execution.status"
+                  ><span class="status-dot" aria-hidden="true"></span
+                  >{{ statusLabel(execution.status) }}</span
+                >
+              </td>
+              <td data-label="Inicio">
+                <time [attr.datetime]="execution.startedAt">{{
+                  execution.startedAt | date: 'dd/MM/yy, HH:mm:ss'
+                }}</time>
+              </td>
+              <td data-label="Finalización">
+                @if (execution.finishedAt) {
+                  <time [attr.datetime]="execution.finishedAt">{{
+                    execution.finishedAt | date: 'dd/MM/yy, HH:mm:ss'
+                  }}</time>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td data-label="Duración">{{ duration(execution) }}</td>
+              <td data-label="Filas" class="numeric">
+                {{ execution.processedRecordCount ?? '—' }}
+              </td>
+            </tr>
+            @if (execution.errorMessage) {
+              <tr class="error-detail">
+                <td colspan="7"><strong>Error:</strong> {{ execution.errorMessage }}</td>
+              </tr>
+            }
           }
-        </li>
-      }
-    </ol>
+        </tbody>
+      </table>
+    </div>
+
+    @if (totalPages() > 1) {
+      <nav class="pagination" aria-label="Paginación del historial">
+        <button type="button" [disabled]="currentPage() === 0" (click)="previousPage()">
+          Anterior
+        </button>
+        <span>Página {{ currentPage() + 1 }} de {{ totalPages() }}</span>
+        <button type="button" [disabled]="currentPage() + 1 >= totalPages()" (click)="nextPage()">
+          Siguiente
+        </button>
+      </nav>
+    }
   }
 </section>

@@ -43,4 +43,12 @@ public class EtlExecutionHistoryService {
 	public List<EtlExecution> findAll() {
 		return repository.findAll();
 	}
+
+	public EtlExecutionPage search(EtlExecutionQuery query) {
+		return repository.search(query);
+	}
+
+	public EtlExecutionSummary summarize() {
+		return repository.summarize();
+	}
 }

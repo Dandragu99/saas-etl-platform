@@ -16,6 +16,7 @@ import com.dandragu.saasetl.csv.application.CsvPreviewError;
 import com.dandragu.saasetl.csv.application.CsvPreviewException;
 import com.dandragu.saasetl.csv.application.RemoveColumnError;
 import com.dandragu.saasetl.csv.application.RemoveColumnException;
+import com.dandragu.saasetl.execution.api.InvalidEtlExecutionQueryException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -69,6 +70,18 @@ public class ApiExceptionHandler {
 						"UNSUPPORTED_MEDIA_TYPE",
 						"La petición debe usar multipart/form-data.",
 						HttpStatus.UNSUPPORTED_MEDIA_TYPE),
+				request);
+	}
+
+	@ExceptionHandler(InvalidEtlExecutionQueryException.class)
+	public ResponseEntity<ApiErrorResponse> handleInvalidEtlExecutionQuery(
+			InvalidEtlExecutionQueryException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"INVALID_EXECUTION_QUERY",
+						"Los filtros o la paginación del historial no son válidos.",
+						HttpStatus.BAD_REQUEST),
 				request);
 	}
 

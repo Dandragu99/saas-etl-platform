@@ -65,4 +65,33 @@ class EtlExecutionControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$").isEmpty());
 	}
+
+	@Test
+	void shouldFilterAndExposePaginationHeadersWithoutChangingTheResponseBody() throws Exception {
+		EtlExecution execution = historyService.createPending(EtlExecutionType.REMOVE_COLUMN);
+		historyService.markRunning(execution.id());
+		historyService.markSuccess(execution.id(), 3);
+
+		mockMvc.perform(get(PATH).param("status", "SUCCESS").param("page", "0").param("size", "10"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].id").value(execution.id().toString()))
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+						.string("X-Total-Count", "1"))
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+						.string("X-Total-Pages", "1"));
+	}
+
+	@Test
+	void shouldReturnExecutionSummary() throws Exception {
+		EtlExecution execution = historyService.createPending(EtlExecutionType.REMOVE_COLUMN);
+		historyService.markRunning(execution.id());
+
+		mockMvc.perform(get(PATH + "/summary"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.total").value(1))
+				.andExpect(jsonPath("$.successful").value(0))
+				.andExpect(jsonPath("$.failed").value(0))
+				.andExpect(jsonPath("$.inProgress").value(1));
+	}
 }

@@ -578,6 +578,22 @@ GET /api/etl/executions
 Accept: application/json
 ```
 
+Parámetros opcionales:
+
+| Parámetro | Descripción |
+| --- | --- |
+| `status` | `PENDING`, `RUNNING`, `SUCCESS` o `FAILED`. |
+| `startedFrom` | Inicio mínimo en formato ISO-8601. |
+| `startedTo` | Inicio máximo en formato ISO-8601. |
+| `page` | Página basada en cero; por defecto `0`. |
+| `size` | Elementos por página, entre 1 y 100; por defecto `100`. |
+
+El cuerpo sigue siendo un array para conservar la compatibilidad. Las cabeceras `X-Total-Count`,
+`X-Page`, `X-Page-Size` y `X-Total-Pages` describen la paginación.
+
+El resumen global está disponible en `GET /api/etl/executions/summary` y devuelve `total`,
+`successful`, `failed` e `inProgress`.
+
 La respuesta contiene las ejecuciones más recientes, ordenadas desde la más nueva hasta la más antigua.
 
 ```json
@@ -615,8 +631,8 @@ Cuando no existen ejecuciones, la respuesta es un array vacío:
 ### 14.3. Reglas y límites
 
 - Esta primera versión registra las descargas completas de eliminación de columna.
-- El historial se almacena en memoria y contiene como máximo las últimas 100 ejecuciones.
-- El historial es volátil y desaparece al reiniciar el backend.
+- El historial se almacena en PostgreSQL y se conserva entre reinicios.
+- Flyway crea y versiona la tabla `etl_executions`.
 - No se almacenan archivos, contenido CSV, nombres de archivo, nombres de columnas, datos personales, excepciones ni stack traces.
 - Si una ejecución antigua es expulsada por el límite de 100, su finalización posterior no debe interrumpir la transformación CSV.
 - Los errores de validación, lectura o generación detectados dentro del caso de uso pueden registrarse como `FAILED`.
@@ -628,6 +644,6 @@ Cuando no existen ejecuciones, la respuesta es un array vacío:
 1. Sin ejecuciones, el endpoint devuelve HTTP 200 y `[]`.
 2. Una descarga válida genera una ejecución `SUCCESS` con fecha final y número de registros.
 3. Una descarga que falla durante la validación o generación genera una ejecución `FAILED` con un mensaje seguro.
-4. El historial nunca contiene más de 100 elementos.
-5. Las peticiones concurrentes no corrompen el historial ni interrumpen una descarga por la expulsión de una entrada antigua.
+4. El historial se puede filtrar por estado y fechas, y paginar sin cambiar el formato del cuerpo.
+5. Las peticiones concurrentes actualizan cada ejecución de forma transaccional.
 6. La respuesta no contiene nombres de archivo, columnas, contenido CSV ni detalles técnicos de excepciones.

@@ -10,12 +10,13 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.UnaryOperator;
 
-import org.springframework.stereotype.Repository;
-
 import com.dandragu.saasetl.execution.application.EtlExecutionRepository;
+import com.dandragu.saasetl.execution.application.EtlExecutionPage;
+import com.dandragu.saasetl.execution.application.EtlExecutionQuery;
+import com.dandragu.saasetl.execution.application.EtlExecutionSummary;
 import com.dandragu.saasetl.execution.domain.EtlExecution;
+import com.dandragu.saasetl.execution.domain.EtlExecutionStatus;
 
-@Repository
 public class InMemoryEtlExecutionRepository implements EtlExecutionRepository {
 
 	public static final int MAX_HISTORY_SIZE = 100;
@@ -78,6 +79,36 @@ public class InMemoryEtlExecutionRepository implements EtlExecutionRepository {
 		finally {
 			lock.readLock().unlock();
 		}
+	}
+
+	@Override
+	public EtlExecutionPage search(EtlExecutionQuery query) {
+		List<EtlExecution> filtered = findAll().stream()
+				.filter(execution -> query.status() == null || execution.status() == query.status())
+				.filter(execution -> query.startedFrom() == null
+						|| !execution.startedAt().isBefore(query.startedFrom()))
+				.filter(execution -> query.startedTo() == null
+						|| !execution.startedAt().isAfter(query.startedTo()))
+				.toList();
+		int fromIndex = Math.min(query.page() * query.size(), filtered.size());
+		int toIndex = Math.min(fromIndex + query.size(), filtered.size());
+		return new EtlExecutionPage(
+				filtered.subList(fromIndex, toIndex),
+				filtered.size(),
+				query.page(),
+				query.size());
+	}
+
+	@Override
+	public EtlExecutionSummary summarize() {
+		List<EtlExecution> all = findAll();
+		long successful = all.stream().filter(execution -> execution.status() == EtlExecutionStatus.SUCCESS).count();
+		long failed = all.stream().filter(execution -> execution.status() == EtlExecutionStatus.FAILED).count();
+		long inProgress = all.stream()
+				.filter(execution -> execution.status() == EtlExecutionStatus.PENDING
+						|| execution.status() == EtlExecutionStatus.RUNNING)
+				.count();
+		return new EtlExecutionSummary(all.size(), successful, failed, inProgress);
 	}
 
 	private void removeOldestExecutionsOverLimit() {

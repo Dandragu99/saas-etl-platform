@@ -10,7 +10,14 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideHttpClient(),
-        { provide: EtlExecutionApiService, useValue: { getExecutions: () => of([]) } },
+        {
+          provide: EtlExecutionApiService,
+          useValue: {
+            getExecutions: () =>
+              of({ executions: [], totalElements: 0, page: 0, size: 10, totalPages: 0 }),
+            getSummary: () => of({ total: 0, successful: 0, failed: 0, inProgress: 0 }),
+          },
+        },
       ],
     }).compileComponents();
   });

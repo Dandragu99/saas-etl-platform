@@ -11,7 +11,7 @@ import {
   CsvPreviewResponse,
 } from './csv-preview.models';
 import { EtlExecutionApiService } from '../execution-history/etl-execution-api.service';
-import { EtlExecution } from '../execution-history/etl-execution.models';
+import { EtlExecutionPage, EtlExecutionSummary } from '../execution-history/etl-execution.models';
 
 const PREVIEW_RESPONSE: CsvPreviewResponse = {
   fileName: 'clientes.csv',
@@ -53,8 +53,12 @@ class CsvPreviewApiServiceStub {
 }
 
 class EtlExecutionApiServiceStub {
-  getExecutions(): Observable<readonly EtlExecution[]> {
-    return of([]);
+  getExecutions(): Observable<EtlExecutionPage> {
+    return of({ executions: [], totalElements: 0, page: 0, size: 10, totalPages: 0 });
+  }
+
+  getSummary(): Observable<EtlExecutionSummary> {
+    return of({ total: 0, successful: 0, failed: 0, inProgress: 0 });
   }
 }
 
@@ -97,23 +101,23 @@ describe('CsvPreview', () => {
     vi.spyOn(apiService, 'preview').mockReturnValue(previewSubject);
     const fixture = TestBed.createComponent(CsvPreview);
 
-    expect(fixture.nativeElement.querySelector('select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#column-to-remove')).toBeNull();
     selectFile(fixture.nativeElement as HTMLElement, 'clientes.csv');
     await fixture.whenStable();
     clickButton(fixture.nativeElement as HTMLElement, 'Mostrar vista previa');
     await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#column-to-remove')).toBeNull();
 
     previewSubject.next(PREVIEW_RESPONSE);
     await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('select')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#column-to-remove')).not.toBeNull();
   });
 
   it('should list exactly the preview columns without selecting one', async () => {
     const fixture = TestBed.createComponent(CsvPreview);
     await loadOriginalPreview(fixture);
 
-    const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    const select = fixture.nativeElement.querySelector('#column-to-remove') as HTMLSelectElement;
     const options = [...select.options].map((option) => option.textContent?.trim());
     expect(options).toEqual(['Selecciona una columna', 'id', 'nombre', 'email']);
     expect(select.value).toBe('');
@@ -336,7 +340,7 @@ describe('CsvPreview', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelectorAll('app-csv-preview-table')).toHaveLength(1);
     expect(element.textContent).toContain('Vista previa original');
-    expect((element.querySelector('select') as HTMLSelectElement).value).toBe('nombre');
+    expect((element.querySelector('#column-to-remove') as HTMLSelectElement).value).toBe('nombre');
   });
 
   it('should clear every previous state when file changes', async () => {
@@ -351,7 +355,7 @@ describe('CsvPreview', () => {
 
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelectorAll('app-csv-preview-table')).toHaveLength(0);
-    expect(element.querySelector('select')).toBeNull();
+    expect(element.querySelector('#column-to-remove')).toBeNull();
     expect(element.textContent).toContain('otros-clientes.csv');
     expect(element.textContent).not.toContain('Columna eliminada:');
   });
@@ -427,7 +431,7 @@ describe('CsvPreview', () => {
     expect(URL.createObjectURL).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('nuevo.csv');
     expect(fixture.nativeElement.textContent).not.toContain('Descarga iniciada:');
-    expect(fixture.nativeElement.querySelector('select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#column-to-remove')).toBeNull();
   });
 
   it('should cancel a pending download when destroyed', async () => {
@@ -462,7 +466,7 @@ describe('CsvPreview', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain(
       'El CSV no es válido.',
     );
-    expect(fixture.nativeElement.querySelector('select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#column-to-remove')).toBeNull();
   });
 });
 
@@ -491,7 +495,7 @@ function selectFile(element: HTMLElement, fileName: string): File {
 }
 
 async function selectColumn(fixture: ComponentFixture<CsvPreview>, column: string): Promise<void> {
-  const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+  const select = fixture.nativeElement.querySelector('#column-to-remove') as HTMLSelectElement;
   select.value = column;
   select.dispatchEvent(new Event('change'));
   await fixture.whenStable();

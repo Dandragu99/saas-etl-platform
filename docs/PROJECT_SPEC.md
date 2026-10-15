@@ -252,9 +252,9 @@ Separación inicial:
 
 ### Base de datos
 
-La primera versión del seguimiento operativo de ejecuciones utiliza un historial en memoria,
-volátil y limitado a 100 entradas. Se utilizará PostgreSQL cuando se introduzcan usuarios y
-el historial persistente definitivo.
+El seguimiento operativo de ejecuciones se persiste en PostgreSQL mediante Spring Data JPA.
+Flyway gestiona el esquema y el repositorio en memoria se conserva únicamente como apoyo para
+pruebas unitarias aisladas.
 
 Los archivos no se almacenarán directamente dentro de PostgreSQL.
 

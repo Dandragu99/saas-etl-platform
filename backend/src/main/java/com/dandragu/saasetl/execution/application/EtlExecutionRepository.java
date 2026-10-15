@@ -16,4 +16,8 @@ public interface EtlExecutionRepository {
 	Optional<EtlExecution> update(UUID id, UnaryOperator<EtlExecution> updateOperation);
 
 	List<EtlExecution> findAll();
+
+	EtlExecutionPage search(EtlExecutionQuery query);
+
+	EtlExecutionSummary summarize();
 }

@@ -12,6 +12,27 @@ export interface EtlExecution {
   readonly errorMessage: string | null;
 }
 
+export interface EtlExecutionQuery {
+  readonly status?: EtlExecutionStatus;
+  readonly page: number;
+  readonly size: number;
+}
+
+export interface EtlExecutionPage {
+  readonly executions: readonly EtlExecution[];
+  readonly totalElements: number;
+  readonly page: number;
+  readonly size: number;
+  readonly totalPages: number;
+}
+
+export interface EtlExecutionSummary {
+  readonly total: number;
+  readonly successful: number;
+  readonly failed: number;
+  readonly inProgress: number;
+}
+
 export class EtlExecutionRequestError extends Error {
   constructor(message: string) {
     super(message);

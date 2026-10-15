@@ -42,6 +42,48 @@ describe('EtlExecutionApiService', () => {
     expect(request.request.method).toBe('GET');
     request.flush(expected);
 
+    await expect(responsePromise).resolves.toEqual({
+      executions: expected,
+      totalElements: 1,
+      page: 0,
+      size: 100,
+      totalPages: 1,
+    });
+  });
+
+  it('should send pagination and status filters and read pagination headers', async () => {
+    const responsePromise = firstValueFrom(
+      service.getExecutions({ status: 'FAILED', page: 1, size: 10 }),
+    );
+    const request = httpTestingController.expectOne(
+      '/api/etl/executions?page=1&size=10&status=FAILED',
+    );
+    request.flush([], {
+      headers: {
+        'X-Total-Count': '12',
+        'X-Page': '1',
+        'X-Page-Size': '10',
+        'X-Total-Pages': '2',
+      },
+    });
+
+    await expect(responsePromise).resolves.toEqual({
+      executions: [],
+      totalElements: 12,
+      page: 1,
+      size: 10,
+      totalPages: 2,
+    });
+  });
+
+  it('should request the global execution summary', async () => {
+    const expected = { total: 8, successful: 5, failed: 2, inProgress: 1 };
+    const responsePromise = firstValueFrom(service.getSummary());
+    const request = httpTestingController.expectOne('/api/etl/executions/summary');
+
+    expect(request.request.method).toBe('GET');
+    request.flush(expected);
+
     await expect(responsePromise).resolves.toEqual(expected);
   });
 

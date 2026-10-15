@@ -1,12 +1,13 @@
 import { DatePipe } from '@angular/common';
 import { Component, effect, inject, input, OnDestroy, signal, untracked } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 
 import { EtlExecutionApiService } from './etl-execution-api.service';
 import {
   EtlExecution,
   EtlExecutionRequestError,
   EtlExecutionStatus,
+  EtlExecutionSummary,
   EtlExecutionType,
 } from './etl-execution.models';
 
@@ -19,6 +20,7 @@ type HistoryStatus = 'loading' | 'success' | 'error';
   styleUrl: './etl-execution-history.css',
 })
 export class EtlExecutionHistory implements OnDestroy {
+  private static readonly PAGE_SIZE = 10;
   private readonly apiService = inject(EtlExecutionApiService);
   private loadSubscription: Subscription | null = null;
 
@@ -26,7 +28,17 @@ export class EtlExecutionHistory implements OnDestroy {
 
   protected readonly status = signal<HistoryStatus>('loading');
   protected readonly executions = signal<readonly EtlExecution[]>([]);
+  protected readonly summary = signal<EtlExecutionSummary>({
+    total: 0,
+    successful: 0,
+    failed: 0,
+    inProgress: 0,
+  });
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly selectedStatus = signal<EtlExecutionStatus | null>(null);
+  protected readonly currentPage = signal(0);
+  protected readonly totalElements = signal(0);
+  protected readonly totalPages = signal(0);
 
   constructor() {
     effect(() => {
@@ -36,6 +48,25 @@ export class EtlExecutionHistory implements OnDestroy {
   }
 
   protected refresh(): void {
+    this.loadExecutions();
+  }
+
+  protected filterByStatus(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedStatus.set(value === '' ? null : (value as EtlExecutionStatus));
+    this.currentPage.set(0);
+    this.loadExecutions();
+  }
+
+  protected previousPage(): void {
+    if (this.currentPage() === 0) return;
+    this.currentPage.update((page) => page - 1);
+    this.loadExecutions();
+  }
+
+  protected nextPage(): void {
+    if (this.currentPage() + 1 >= this.totalPages()) return;
+    this.currentPage.update((page) => page + 1);
     this.loadExecutions();
   }
 
@@ -94,9 +125,19 @@ export class EtlExecutionHistory implements OnDestroy {
     this.status.set('loading');
     this.errorMessage.set(null);
 
-    this.loadSubscription = this.apiService.getExecutions().subscribe({
-      next: (executions) => {
-        this.executions.set(executions);
+    this.loadSubscription = forkJoin({
+      page: this.apiService.getExecutions({
+        status: this.selectedStatus() ?? undefined,
+        page: this.currentPage(),
+        size: EtlExecutionHistory.PAGE_SIZE,
+      }),
+      summary: this.apiService.getSummary(),
+    }).subscribe({
+      next: ({ page, summary }) => {
+        this.executions.set(page.executions);
+        this.totalElements.set(page.totalElements);
+        this.totalPages.set(page.totalPages);
+        this.summary.set(summary);
         this.status.set('success');
       },
       error: (error: unknown) => {

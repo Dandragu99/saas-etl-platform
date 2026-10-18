@@ -3,8 +3,8 @@
 ## Status
 
 This document records the approved contracts and architectural decisions for Phase 2. The current
-iteration implements only the internal company foundation. Products, inventory, authentication and
-public business endpoints are not part of this iteration.
+company and product foundations are implemented. Authentication HTTP endpoints, sessions, inventory
+and public business endpoints are not part of the current identity persistence iteration.
 
 ## Architectural boundaries
 
@@ -89,3 +89,28 @@ the first company-owned aggregate, because the company root itself is not tenant
 Inventory will add PostgreSQL Testcontainers tests for numeric behavior, row locking and concurrent
 stock exits. H2 remains useful for fast application-context tests but is not considered sufficient to
 prove PostgreSQL concurrency behavior.
+
+## Identity and membership foundation
+
+Migration V4 adds users and company memberships without changing V1-V3 or assigning legacy ETL data.
+Email addresses are trimmed and lower-cased before lookup and have a database-enforced unique key.
+Passwords are stored only as BCrypt hashes (cost 12); raw passwords are accepted internally only long
+enough to hash them and are limited to 72 UTF-8 bytes so BCrypt never truncates them silently.
+
+Registration is one transaction that creates an active user, an active company and an active OWNER
+membership. Roles are `OWNER`, `ADMIN`, `INVENTORY_MANAGER` and `VIEWER`; membership status is
+independent from user and company status. A future authenticated request must revalidate all three,
+so disabling a user, suspending a membership or suspending a company invalidates effective access even
+when a server-side session already exists.
+
+The active company will be selected through a membership-validated server-side session. A company id
+sent by a client is never authorization evidence. When company selection changes, the Angular client
+must clear all company-scoped in-memory state before refetching it.
+
+Spring Security, JDBC sessions, controllers and CSRF configuration are intentionally deferred. When
+introduced, every endpoint will be denied by default except an explicit public allowlist. CSRF remains
+enabled, including multipart CSV requests. Global ETL history must not be exposed to business users
+until a later additive migration assigns new executions to companies while preserving legacy rows.
+
+Email verification, password recovery and production-grade abuse protection are release requirements,
+not optional post-launch work.

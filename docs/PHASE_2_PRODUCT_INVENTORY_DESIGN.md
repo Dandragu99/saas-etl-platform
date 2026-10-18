@@ -114,3 +114,32 @@ until a later additive migration assigns new executions to companies while prese
 
 Email verification, password recovery and production-grade abuse protection are release requirements,
 not optional post-launch work.
+
+## Authentication stage B
+
+Stage B uses Spring Security's server-side authentication model and Spring Session JDBC. Flyway V5
+is the sole authority for the `SPRING_SESSION` and `SPRING_SESSION_ATTRIBUTES` schema; automatic
+session schema initialization is disabled. The browser receives only the opaque `NEXO_SESSION`
+cookie, configured as HttpOnly, SameSite=Lax and Secure in production.
+
+Every route is protected unless it appears in the explicit public allowlist. At this stage that list
+contains health, CSRF bootstrap and login only. Global ETL history is denied even to authenticated
+users until ETL data is safely assigned to companies. Registration, role authorization and active
+company selection remain deferred.
+
+The Angular-compatible CSRF contract uses the `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header. A client
+first calls `GET /api/auth/csrf`, reads the non-HttpOnly CSRF cookie, and sends its value in the header
+for login and every state-changing request, including multipart CSV uploads and logout. Successful
+login rotates both the HTTP session identifier and the CSRF token. Logout invalidates the server-side
+session and issues a fresh anonymous CSRF token.
+
+The login filter is custom only because the API accepts and returns JSON; authentication, session
+fixation protection, CSRF rotation, security-context persistence and logout use Spring Security's
+standard strategies and handlers. A second small filter materializes deferred CSRF tokens as cookies,
+as recommended for single-page applications. An active-user validation filter checks the persisted
+user status on every authenticated request and invalidates an existing session immediately when the
+user is no longer active.
+
+The current Angular application has no authentication screens yet. Consequently its ETL operations
+are intentionally unavailable until the frontend authentication stage implements CSRF bootstrap,
+login and session handling. No credential or session identifier should be stored in localStorage.

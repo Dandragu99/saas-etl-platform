@@ -1,0 +1,70 @@
+<div class="application-shell">
+  <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
+
+  <aside class="sidebar" [class.sidebar-open]="sidebarOpen()" aria-label="Navegación principal">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">N</span>
+      <span><strong>Nexo</strong><small>ERP para pymes</small></span>
+      <button class="close-menu" type="button" aria-label="Cerrar menú" (click)="closeSidebar()">
+        ×
+      </button>
+    </div>
+
+    <nav class="main-navigation">
+      <p class="navigation-label">Espacio de trabajo</p>
+      @for (item of navigation; track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeSidebar()"
+        >
+          <span class="nav-icon" [attr.data-icon]="item.icon" aria-hidden="true"></span>
+          <span>{{ item.label }}</span>
+          @if (!item.available) {
+            <span class="soon-badge">Pronto</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span><strong>Versión inicial</strong><small>Módulos en desarrollo</small></span>
+    </div>
+  </aside>
+
+  @if (sidebarOpen()) {
+    <button
+      class="backdrop"
+      type="button"
+      aria-label="Cerrar menú"
+      (click)="closeSidebar()"
+    ></button>
+  }
+
+  <div class="workspace">
+    <header class="topbar">
+      <div class="topbar-title">
+        <button
+          class="menu-button"
+          type="button"
+          aria-label="Abrir menú"
+          [attr.aria-expanded]="sidebarOpen()"
+          (click)="toggleSidebar()"
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <div>
+          <span class="topbar-context">Nexo ERP</span>
+          <strong>{{ pageTitle() }}</strong>
+        </div>
+      </div>
+      <div class="environment-badge"><span aria-hidden="true"></span>Entorno de desarrollo</div>
+    </header>
+
+    <main id="main-content" class="content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>

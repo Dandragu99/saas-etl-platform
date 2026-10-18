@@ -1,11 +1,10 @@
 import { Component } from '@angular/core';
-
-import { CsvPreview } from './csv-preview/csv-preview';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [CsvPreview],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {}

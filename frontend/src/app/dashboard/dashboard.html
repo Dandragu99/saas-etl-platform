@@ -1,0 +1,54 @@
+<section class="dashboard-heading" aria-labelledby="dashboard-title">
+  <div>
+    <p class="eyebrow">Visión general</p>
+    <h1 id="dashboard-title">Tu actividad, de un vistazo</h1>
+    <p>
+      Consulta el estado real de tus procesos ETL y accede rápidamente a las herramientas
+      disponibles.
+    </p>
+  </div>
+  <a class="primary-action" routerLink="/transformaciones">
+    <span aria-hidden="true">＋</span>Nueva transformación
+  </a>
+</section>
+
+<section class="quick-access" aria-labelledby="quick-access-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">Accesos rápidos</p>
+      <h2 id="quick-access-title">Continúa tu trabajo</h2>
+    </div>
+    <span>Las funciones disponibles usan datos reales del sistema</span>
+  </div>
+
+  <div class="access-grid">
+    <a class="access-card available" routerLink="/transformaciones">
+      <span class="access-icon transform-icon" aria-hidden="true">↗</span>
+      <span
+        ><strong>Transformar un CSV</strong><small>Previsualiza, procesa y descarga</small></span
+      >
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+    <a class="access-card" routerLink="/documentos">
+      <span class="access-icon" aria-hidden="true">▤</span>
+      <span><strong>Documentos</strong><small>Módulo en preparación</small></span>
+      <span class="soon">Próximamente</span>
+    </a>
+    <a class="access-card" routerLink="/asistente-ia">
+      <span class="access-icon assistant-icon" aria-hidden="true">✦</span>
+      <span><strong>Asistente IA</strong><small>Módulo en preparación</small></span>
+      <span class="soon">Próximamente</span>
+    </a>
+  </div>
+</section>
+
+<section class="activity-section" aria-labelledby="activity-title">
+  <div class="section-heading activity-heading">
+    <div>
+      <p class="eyebrow">Datos operativos</p>
+      <h2 id="activity-title">Actividad reciente</h2>
+    </div>
+    <span>Información proporcionada por el historial ETL</span>
+  </div>
+  <app-etl-execution-history />
+</section>

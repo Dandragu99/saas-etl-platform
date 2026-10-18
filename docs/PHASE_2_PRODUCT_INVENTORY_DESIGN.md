@@ -37,6 +37,13 @@ created, because an implicit tenant would conceal the absence of authentication.
 - Quantities use `NUMERIC(19,4)` to support fractional units.
 - Units begin with `UNIT`, `KG`, `G`, `L`, `ML`, `M`, `M2` and `HOUR`, and may be extended through
   reviewed application and database changes.
+- Migration V3 persists the company currency with each product price. Commands cannot select this
+  currency: the application copies it from the current active company. This preserves the historical
+  meaning of existing prices if the company default changes later.
+- Product lookup and uniqueness methods always require the company resolved by `CompanyContext`.
+- Optimistic versioning rejects stale updates rather than silently overwriting newer data.
+- The database unique constraint `(company_id, normalized_sku)` remains the final protection against
+  concurrent duplicate creation, including when the existing product is inactive.
 
 ## Inventory decisions
 

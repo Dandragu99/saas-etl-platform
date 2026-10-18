@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.dandragu.saasetl.identity.application.CompanyMembershipRepository;
 import com.dandragu.saasetl.identity.domain.CompanyMembership;
 import com.dandragu.saasetl.identity.domain.MembershipId;
+import com.dandragu.saasetl.identity.domain.MembershipStatus;
 import com.dandragu.saasetl.identity.domain.UserId;
 
 @Repository
@@ -44,6 +45,14 @@ public class JpaCompanyMembershipRepository implements CompanyMembershipReposito
 	@Transactional(readOnly = true)
 	public List<CompanyMembership> findByUserId(UserId userId) {
 		return repository.findByUserIdOrderByCreatedAtAsc(userId.value()).stream()
+				.map(CompanyMembershipEntity::toDomain)
+				.toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<CompanyMembership> findActiveByUserId(UserId userId) {
+		return repository.findByUserIdAndStatusOrderByCreatedAtAsc(userId.value(), MembershipStatus.ACTIVE).stream()
 				.map(CompanyMembershipEntity::toDomain)
 				.toList();
 	}

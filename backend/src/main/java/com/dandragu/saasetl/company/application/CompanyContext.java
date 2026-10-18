@@ -10,5 +10,9 @@ import java.util.UUID;
  */
 public interface CompanyContext {
 
-	UUID requireCompanyId();
+	CompanyAccess requireAccess();
+
+	default UUID requireCompanyId() {
+		return requireAccess().company().id();
+	}
 }

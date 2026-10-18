@@ -17,9 +17,48 @@ import com.dandragu.saasetl.csv.application.CsvPreviewException;
 import com.dandragu.saasetl.csv.application.RemoveColumnError;
 import com.dandragu.saasetl.csv.application.RemoveColumnException;
 import com.dandragu.saasetl.execution.api.InvalidEtlExecutionQueryException;
+import com.dandragu.saasetl.company.application.CompanyAccessDeniedException;
+import com.dandragu.saasetl.company.application.CompanyContextUnavailableException;
+import com.dandragu.saasetl.company.application.CompanyPermissionDeniedException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+	@ExceptionHandler(CompanyContextUnavailableException.class)
+	public ResponseEntity<ApiErrorResponse> handleCompanyContextUnavailable(
+			CompanyContextUnavailableException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"ACTIVE_COMPANY_REQUIRED",
+						"Debe seleccionar una empresa activa.",
+						HttpStatus.CONFLICT),
+				request);
+	}
+
+	@ExceptionHandler(CompanyAccessDeniedException.class)
+	public ResponseEntity<ApiErrorResponse> handleCompanyAccessDenied(
+			CompanyAccessDeniedException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"COMPANY_ACCESS_DENIED",
+						"No tiene acceso a la empresa solicitada.",
+						HttpStatus.FORBIDDEN),
+				request);
+	}
+
+	@ExceptionHandler(CompanyPermissionDeniedException.class)
+	public ResponseEntity<ApiErrorResponse> handleCompanyPermissionDenied(
+			CompanyPermissionDeniedException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"COMPANY_PERMISSION_DENIED",
+						"Su rol no permite realizar esta operación.",
+						HttpStatus.FORBIDDEN),
+				request);
+	}
 
 	@ExceptionHandler(CsvPreviewException.class)
 	public ResponseEntity<ApiErrorResponse> handleCsvPreviewException(

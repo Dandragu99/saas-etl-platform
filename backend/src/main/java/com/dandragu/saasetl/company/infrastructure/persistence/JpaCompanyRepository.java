@@ -1,5 +1,7 @@
 package com.dandragu.saasetl.company.infrastructure.persistence;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,5 +30,13 @@ public class JpaCompanyRepository implements CompanyRepository {
 	@Transactional(readOnly = true)
 	public Optional<Company> findById(UUID id) {
 		return repository.findById(id).map(CompanyEntity::toDomain);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<Company> findByIds(Collection<UUID> ids) {
+		return repository.findAllById(ids).stream()
+				.map(CompanyEntity::toDomain)
+				.toList();
 	}
 }

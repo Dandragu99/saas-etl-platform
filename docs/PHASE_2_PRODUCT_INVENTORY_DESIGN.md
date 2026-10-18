@@ -143,3 +143,32 @@ user is no longer active.
 The current Angular application has no authentication screens yet. Consequently its ETL operations
 are intentionally unavailable until the frontend authentication stage implements CSRF bootstrap,
 login and session handling. No credential or session identifier should be stored in localStorage.
+
+## Authenticated company context stage C
+
+The authenticated session stores only the selected company UUID. That value is not authorization
+evidence: every business operation resolves the authenticated user and revalidates the user,
+membership and company against the database. The membership role is never persisted in the session
+or principal. A request-local validated `CompanyAccess` avoids repeating the same lookup when both
+`CompanyContext` and role authorization are needed during one request.
+
+After Spring Security has established and persisted a successful authenticated session, a user with
+exactly one active membership in an active company receives that company as the automatic selection.
+Users with multiple accessible companies must explicitly select one through the CSRF-protected
+session endpoint. Selecting another company atomically replaces the UUID stored in the server-side
+session. A suspended membership or company immediately clears effective access on the next request.
+
+Permissions remain company-scoped. OWNER has every permission, including ownership and company
+suspension. ADMIN can perform limited company administration and manage products and inventory, but
+cannot change ownership or suspend the company. INVENTORY_MANAGER can read products and manage
+inventory but cannot create, edit or deactivate products. VIEWER has read-only access to company,
+product and inventory data.
+
+Spring Security uses an explicit route allowlist followed by `anyRequest().denyAll()`. Global ETL
+history remains denied to every business user. No Product or Inventory HTTP endpoint is introduced
+in this stage.
+
+When the Angular company selector is implemented, a successful switch must clear every
+company-scoped store, cache and pending request before data is reloaded. Synchronizing that reset
+across browser tabs (for example with `BroadcastChannel`) is deliberately deferred to the frontend
+stage; the backend session remains the authority if tabs temporarily disagree.

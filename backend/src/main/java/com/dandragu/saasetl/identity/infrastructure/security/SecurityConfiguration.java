@@ -26,6 +26,8 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
 import com.dandragu.saasetl.identity.application.UserRepository;
+import com.dandragu.saasetl.company.application.CompanyAccessService;
+import com.dandragu.saasetl.company.infrastructure.context.ActiveCompanySession;
 import tools.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.DispatcherType;
@@ -87,13 +89,19 @@ public class SecurityConfiguration {
 			JsonAuthenticationFailureHandler failureHandler,
 			JsonAuthenticationEntryPoint authenticationEntryPoint,
 			JsonAccessDeniedHandler accessDeniedHandler,
-			UserRepository userRepository) throws Exception {
+			UserRepository userRepository,
+			CompanyAccessService companyAccessService,
+			ActiveCompanySession activeCompanySession) throws Exception {
 		JsonLoginAuthenticationFilter loginFilter = new JsonLoginAuthenticationFilter(
 				authenticationManager, objectMapper);
 		loginFilter.setSecurityContextRepository(securityContextRepository);
 		loginFilter.setSessionAuthenticationStrategy(sessionAuthenticationStrategy);
 		loginFilter.setAuthenticationSuccessHandler(
-				new JsonAuthenticationSuccessHandler(responseWriter, csrfTokenRepository));
+				new JsonAuthenticationSuccessHandler(
+						responseWriter,
+						csrfTokenRepository,
+						companyAccessService,
+						activeCompanySession));
 		loginFilter.setAuthenticationFailureHandler(failureHandler);
 
 		http
@@ -119,7 +127,13 @@ public class SecurityConfiguration {
 						.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 						.requestMatchers("/api/health", "/api/auth/csrf", "/api/auth/login").permitAll()
 						.requestMatchers("/api/etl/executions/**").denyAll()
-						.anyRequest().authenticated())
+						.requestMatchers(
+								"/api/auth/session",
+								"/api/auth/session/company",
+								"/api/auth/companies",
+								"/api/auth/logout",
+								"/api/csv/**").authenticated()
+						.anyRequest().denyAll())
 				.addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
 				.addFilterAfter(
 						new ActiveUserValidationFilter(userRepository, authenticationEntryPoint),

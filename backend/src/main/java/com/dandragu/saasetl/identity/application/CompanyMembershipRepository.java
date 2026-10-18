@@ -17,4 +17,6 @@ public interface CompanyMembershipRepository {
 	Optional<CompanyMembership> findByUserIdAndCompanyId(UserId userId, UUID companyId);
 
 	List<CompanyMembership> findByUserId(UserId userId);
+
+	List<CompanyMembership> findActiveByUserId(UserId userId);
 }

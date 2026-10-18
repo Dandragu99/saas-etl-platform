@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,6 +14,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -23,6 +25,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Container;
@@ -30,6 +35,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import com.dandragu.saasetl.company.domain.CurrencyCode;
+import com.dandragu.saasetl.company.application.CompanyAccessDeniedException;
+import com.dandragu.saasetl.company.application.CompanyAccessService;
+import com.dandragu.saasetl.company.infrastructure.context.ActiveCompanySession;
+import com.dandragu.saasetl.company.infrastructure.context.SecurityCompanyContext;
 import com.dandragu.saasetl.identity.application.RegisterUserCommand;
 import com.dandragu.saasetl.identity.application.RegistrationResult;
 import com.dandragu.saasetl.identity.application.RegistrationService;
@@ -57,6 +66,10 @@ class PostgresSecurityIntegrationTest {
 	private RegistrationService registrationService;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private CompanyAccessService companyAccessService;
+	@Autowired
+	private ActiveCompanySession activeCompanySession;
 	@BeforeEach
 	void cleanDatabase() {
 		jdbcTemplate.update("DELETE FROM SPRING_SESSION_ATTRIBUTES");
@@ -67,9 +80,14 @@ class PostgresSecurityIntegrationTest {
 		jdbcTemplate.update("DELETE FROM companies");
 	}
 
+	@AfterEach
+	void clearSecurityContext() {
+		SecurityContextHolder.clearContext();
+	}
+
 	@Test
 	void shouldCompleteCsrfLoginMultipartSessionAndLogoutCycle() throws Exception {
-		registerUser();
+		RegistrationResult registration = registerUser();
 		CsrfState anonymous = getCsrf(null);
 
 		assertThat(anonymous.session().isHttpOnly()).isTrue();
@@ -86,6 +104,8 @@ class PostgresSecurityIntegrationTest {
 						.content("{\"email\":\"owner@example.com\",\"password\":\"correct horse battery staple\"}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.email").value(EMAIL))
+				.andExpect(jsonPath("$.activeCompany.id").value(registration.companyId().toString()))
+				.andExpect(jsonPath("$.activeCompany.role").value("OWNER"))
 				.andReturn();
 
 		Cookie authenticatedSession = requireCookie(login, "NEXO_SESSION");
@@ -107,6 +127,7 @@ class PostgresSecurityIntegrationTest {
 						.cookie(authenticatedSession, authenticated.csrf()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.email").value(EMAIL))
+				.andExpect(jsonPath("$.activeCompany.id").value(registration.companyId().toString()))
 				.andExpect(jsonPath("$.passwordHash").doesNotExist());
 
 		MockMultipartFile csv = new MockMultipartFile(
@@ -130,6 +151,125 @@ class PostgresSecurityIntegrationTest {
 		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION", Integer.class)).isZero();
 		mockMvc.perform(get("/api/auth/session").secure(true).cookie(authenticatedSession))
 				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void shouldRequireExplicitSelectionWithMultipleCompaniesAndAllowSafeSwitching() throws Exception {
+		RegistrationResult registration = registerUser();
+		UUID secondCompany = addCompanyMembership(registration, "Second Company", "INVENTORY_MANAGER");
+		AuthenticatedState authenticated = login();
+
+		mockMvc.perform(get("/api/auth/session")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.activeCompany").doesNotExist());
+
+		mockMvc.perform(get("/api/auth/companies")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(2))
+				.andExpect(jsonPath("$[0].role").value("OWNER"))
+				.andExpect(jsonPath("$[1].role").value("INVENTORY_MANAGER"));
+
+		selectCompany(authenticated, registration.companyId())
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(registration.companyId().toString()));
+		selectCompany(authenticated, secondCompany)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(secondCompany.toString()))
+				.andExpect(jsonPath("$.role").value("INVENTORY_MANAGER"));
+
+		mockMvc.perform(get("/api/auth/session")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.activeCompany.id").value(secondCompany.toString()));
+	}
+
+	@Test
+	void shouldRejectForeignCompanySelectionAndRequireCsrf() throws Exception {
+		registerUser();
+		UUID foreignCompany = addCompany("Foreign Company");
+		AuthenticatedState authenticated = login();
+
+		mockMvc.perform(put("/api/auth/session/company")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"companyId\":\"" + foreignCompany + "\"}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+
+		selectCompany(authenticated, foreignCompany)
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("COMPANY_ACCESS_DENIED"));
+	}
+
+	@Test
+	void shouldStopAuthorizingSuspendedMembershipOrCompanyImmediately() throws Exception {
+		RegistrationResult registration = registerUser();
+		AuthenticatedState authenticated = login();
+		jdbcTemplate.update(
+				"UPDATE company_memberships SET status = 'SUSPENDED' WHERE id = ?",
+				registration.membershipId().value());
+
+		mockMvc.perform(get("/api/auth/session")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.activeCompany").doesNotExist());
+		selectCompany(authenticated, registration.companyId())
+				.andExpect(status().isForbidden());
+
+		jdbcTemplate.update(
+				"UPDATE company_memberships SET status = 'ACTIVE' WHERE id = ?",
+				registration.membershipId().value());
+		selectCompany(authenticated, registration.companyId()).andExpect(status().isOk());
+		jdbcTemplate.update("UPDATE companies SET status = 'SUSPENDED' WHERE id = ?", registration.companyId());
+
+		mockMvc.perform(get("/api/auth/session")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.activeCompany").doesNotExist());
+		selectCompany(authenticated, registration.companyId())
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void shouldDenyAuthenticatedRoutesOutsideTheExplicitAllowlist() throws Exception {
+		registerUser();
+		AuthenticatedState authenticated = login();
+
+		mockMvc.perform(get("/api/not-authorized")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void shouldIsolateSecurityCompanyContextByAuthenticatedMembership() {
+		RegistrationResult registration = registerUser();
+		UUID foreignCompany = addCompany("Foreign Company");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		activeCompanySession.select(request, registration.companyId());
+		var principal = new AuthenticatedUserPrincipal(registration.userId().value(), EMAIL);
+		SecurityContextHolder.getContext().setAuthentication(
+				UsernamePasswordAuthenticationToken.authenticated(principal, null, java.util.List.of()));
+		SecurityCompanyContext context = new SecurityCompanyContext(
+				request, activeCompanySession, companyAccessService);
+
+		assertThat(context.requireCompanyId()).isEqualTo(registration.companyId());
+
+		MockHttpServletRequest foreignRequest = new MockHttpServletRequest();
+		activeCompanySession.select(foreignRequest, foreignCompany);
+		SecurityCompanyContext foreignContext = new SecurityCompanyContext(
+				foreignRequest, activeCompanySession, companyAccessService);
+		org.assertj.core.api.Assertions.assertThatThrownBy(foreignContext::requireCompanyId)
+				.isInstanceOf(CompanyAccessDeniedException.class);
+		assertThat(activeCompanySession.find(foreignRequest)).isEmpty();
 	}
 
 	@Test
@@ -249,6 +389,36 @@ class PostgresSecurityIntegrationTest {
 		Cookie session = requireCookie(login, "NEXO_SESSION");
 		CsrfState renewed = getCsrf(session);
 		return new AuthenticatedState(session, renewed.csrf(), renewed.token());
+	}
+
+	private org.springframework.test.web.servlet.ResultActions selectCompany(
+			AuthenticatedState authenticated,
+			UUID companyId) throws Exception {
+		return mockMvc.perform(put("/api/auth/session/company")
+				.secure(true)
+				.cookie(authenticated.session(), authenticated.csrf())
+				.header("X-XSRF-TOKEN", authenticated.token())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"companyId\":\"" + companyId + "\"}"));
+	}
+
+	private UUID addCompanyMembership(RegistrationResult registration, String name, String role) {
+		UUID companyId = addCompany(name);
+		jdbcTemplate.update("""
+				INSERT INTO company_memberships
+				(id, user_id, company_id, role, status, version, created_at, updated_at)
+				VALUES (?, ?, ?, ?, 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""", UUID.randomUUID(), registration.userId().value(), companyId, role);
+		return companyId;
+	}
+
+	private UUID addCompany(String name) {
+		UUID companyId = UUID.randomUUID();
+		jdbcTemplate.update("""
+				INSERT INTO companies (id, name, default_currency, status, created_at, updated_at)
+				VALUES (?, ?, 'EUR', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""", companyId, name);
+		return companyId;
 	}
 
 	private CsrfState getCsrf(Cookie session) throws Exception {

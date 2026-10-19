@@ -16,15 +16,21 @@ import org.springframework.web.multipart.MultipartFile;
 import com.dandragu.saasetl.csv.application.CsvPreviewCommand;
 import com.dandragu.saasetl.csv.application.CsvPreviewResult;
 import com.dandragu.saasetl.csv.application.CsvPreviewService;
+import com.dandragu.saasetl.company.application.CompanyAuthorizationService;
+import com.dandragu.saasetl.company.application.CompanyPermission;
 
 @RestController
 @RequestMapping("/api/csv")
 public class CsvPreviewController {
 
 	private final CsvPreviewService csvPreviewService;
+	private final CompanyAuthorizationService authorizationService;
 
-	public CsvPreviewController(CsvPreviewService csvPreviewService) {
+	public CsvPreviewController(
+			CsvPreviewService csvPreviewService,
+			CompanyAuthorizationService authorizationService) {
 		this.csvPreviewService = csvPreviewService;
+		this.authorizationService = authorizationService;
 	}
 
 	@PostMapping(
@@ -32,6 +38,7 @@ public class CsvPreviewController {
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
 	public CsvPreviewResponse preview(@RequestPart("file") MultipartFile file) throws IOException {
+		authorizationService.require(CompanyPermission.ETL_EXECUTE);
 		CsvPreviewCommand command = new CsvPreviewCommand(
 				file.getOriginalFilename(),
 				file.getSize(),

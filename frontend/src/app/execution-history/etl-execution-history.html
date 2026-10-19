@@ -88,11 +88,13 @@
           <tr>
             <th scope="col">Ejecución</th>
             <th scope="col">Tipo</th>
+            <th scope="col">Archivo</th>
             <th scope="col">Estado</th>
             <th scope="col">Inicio</th>
             <th scope="col">Finalización</th>
             <th scope="col">Duración</th>
             <th scope="col" class="numeric">Filas</th>
+            <th scope="col">Resultado</th>
           </tr>
         </thead>
         <tbody>
@@ -102,6 +104,9 @@
                 <code [title]="execution.id">{{ execution.id.slice(0, 8) }}</code>
               </td>
               <td data-label="Tipo">{{ transformationLabel(execution.type) }}</td>
+              <td data-label="Archivo">
+                {{ execution.sourceFileName ?? 'No disponible' }}
+              </td>
               <td data-label="Estado">
                 <span class="status-badge" [attr.data-status]="execution.status"
                   ><span class="status-dot" aria-hidden="true"></span
@@ -126,10 +131,19 @@
               <td data-label="Filas" class="numeric">
                 {{ execution.processedRecordCount ?? '—' }}
               </td>
+              <td data-label="Resultado">
+                @if (execution.resultFileName) {
+                  {{ execution.resultFileName }}
+                } @else if (execution.status === 'FAILED') {
+                  Fallida
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
             </tr>
             @if (execution.errorMessage) {
               <tr class="error-detail">
-                <td colspan="7"><strong>Error:</strong> {{ execution.errorMessage }}</td>
+                <td colspan="9"><strong>Error:</strong> {{ execution.errorMessage }}</td>
               </tr>
             }
           }

@@ -1,13 +1,30 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
+import { of } from 'rxjs';
 
 import { MainLayout } from './main-layout';
+import { AuthSessionService } from '../auth/auth-session.service';
 
 describe('MainLayout', () => {
+  const company = { id: 'company-1', name: 'Nexo', defaultCurrency: 'EUR', role: 'OWNER' as const };
+  const sessions = {
+    session: signal({
+      userId: 'user-1',
+      email: 'owner@example.com',
+      activeCompany: company,
+    }).asReadonly(),
+    getCompanies: () => of([company]),
+    selectCompany: () => of(company),
+    logout: () => of(undefined),
+  };
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [MainLayout],
-      providers: [provideRouter([{ path: 'transformaciones', children: [] }])],
+      providers: [
+        provideRouter([{ path: 'transformaciones', children: [] }]),
+        { provide: AuthSessionService, useValue: sessions },
+      ],
     }).compileComponents();
   });
 

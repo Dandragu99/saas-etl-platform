@@ -15,11 +15,15 @@ The project currently allows users to upload a CSV file, inspect its structure, 
 * Select and remove a column from the preview.
 * Keep the original and transformed previews visible separately.
 * Generate and download the complete transformed CSV through the backend.
-* Persist complete-download executions and their status in PostgreSQL.
+* Persist complete-download executions and their status in PostgreSQL, isolated by active company.
 * Filter and paginate the execution history.
 * Display an ETL dashboard with summary cards, responsive history table and refresh controls.
 * Return consistent and safe API errors.
 * Process the complete CSV sequentially without storing every row in memory.
+* Register an owner together with the first company.
+* Authenticate with a server-side, PostgreSQL-backed session and an HttpOnly cookie.
+* Select an authorized active company without trusting a client-provided company context.
+* Protect Angular routes and clear company-scoped client state when the active company changes.
 
 ## Technology stack
 
@@ -290,13 +294,14 @@ The backend will be available at:
 http://localhost:8080
 ```
 
-Verify it with:
+The health endpoint is public. Business endpoints require an authenticated session:
 
 ```powershell
 curl.exe http://localhost:8080/api/health
-curl.exe "http://localhost:8080/api/etl/executions?page=0&size=10"
-curl.exe http://localhost:8080/api/etl/executions/summary
 ```
+
+The ETL history endpoints return only records owned by the active, authorized company. Records
+created before the multi-company migration remain preserved but hidden until manually reviewed.
 
 The local database and username default to `saas_etl`. The password is deliberately required through an environment variable and is not stored in Git. You can also override every database setting without editing tracked files:
 
@@ -336,49 +341,35 @@ http://localhost:4200
 
 During development, Angular forwards `/api` requests to the backend through `proxy.conf.json`.
 
-The execution history is loaded when the page opens. Use **Actualizar historial** to refresh it manually. It is also refreshed automatically after the complete transformed CSV download request finishes.
+Open `http://localhost:4200/registro`, create the first account and company, and then sign in at
+`http://localhost:4200/login`. The Angular client obtains a CSRF cookie before every state-changing
+authentication request. The session identifier stays in the `NEXO_SESSION` HttpOnly cookie and is
+never stored in browser storage.
+
+After login, the top bar shows the active company. Changing it asks the backend to authorize the
+membership and then reloads the application at `/dashboard`, preventing state from the previous
+company from remaining in Angular memory.
 
 ## Running tests
 
 ### Backend
 
+Run the complete Maven lifecycle. Docker must be running for the PostgreSQL Testcontainers tests:
+
 ```powershell
 cd backend
-.\mvnw.cmd test
-```
-
-Current backend test suite:
-
-```text
-156 tests
-0 failures
-0 errors
-```
-
-Run the complete Maven verification lifecycle:
-
-```powershell
 .\mvnw.cmd verify
 ```
 
 ### Frontend
 
+Run the frontend unit suite and production build:
+
 ```powershell
 cd frontend
 npm.cmd test -- --watch=false
-```
-
-Current frontend test suite:
-
-```text
-48 tests across 6 test files
-0 failures
-```
-
-Create a production build:
-
-```powershell
 npm.cmd run build
+npm.cmd audit
 ```
 
 ## Example using curl
@@ -456,7 +447,10 @@ Technical exceptions and stack traces are not exposed to API clients.
 * Transformations cannot yet be chained.
 * Files and results are not persisted.
 * HTTP transmission failures after CSV generation cannot be reflected reliably in the execution status.
-* There is no authentication or user account system.
+* Email verification and password recovery are not implemented yet and are required before public launch.
+* Registration/login abuse protection and production rate limiting are not implemented yet.
+* ETL executions created before V6 remain hidden while `company_id` is null; recovery is a reviewed administrative process.
+* The authenticated ETL transformation endpoints are not yet company-owned; they remain compatible but do not persist uploaded business data.
 * PostgreSQL credentials in `docker-compose.yml` are development-only defaults and must be overridden outside local development.
 
 ## Roadmap
@@ -468,7 +462,8 @@ Planned improvements include:
 * Improve frontend validation and user feedback.
 * Add end-to-end tests.
 * Deploy the backend and frontend.
-* Add authentication and saved transformation jobs.
+* Add email verification, password recovery and abuse protection.
+* Review legacy ETL records only when reliable ownership evidence is available.
 
 ## Documentation
 
@@ -476,6 +471,7 @@ More detailed specifications are available in:
 
 * `docs/PROJECT_SPEC.md`
 * `docs/API_CONTRACT.md`
+* `docs/ETL_HISTORY_RECOVERY.md`
 
 ## Repository
 

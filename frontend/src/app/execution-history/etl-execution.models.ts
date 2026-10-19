@@ -10,6 +10,8 @@ export interface EtlExecution {
   readonly finishedAt: string | null;
   readonly processedRecordCount: number | null;
   readonly errorMessage: string | null;
+  readonly sourceFileName: string | null;
+  readonly resultFileName: string | null;
 }
 
 export interface EtlExecutionQuery {

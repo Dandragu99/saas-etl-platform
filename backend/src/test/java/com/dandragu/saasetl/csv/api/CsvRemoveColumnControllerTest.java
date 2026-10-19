@@ -3,6 +3,7 @@ package com.dandragu.saasetl.csv.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +47,10 @@ import com.dandragu.saasetl.csv.infrastructure.csv.CsvStreamReader;
 import com.dandragu.saasetl.execution.application.EtlExecutionHistoryService;
 import com.dandragu.saasetl.execution.application.RemoveColumnExecutionService;
 import com.dandragu.saasetl.execution.infrastructure.InMemoryEtlExecutionRepository;
+import com.dandragu.saasetl.company.application.CompanyAccess;
+import com.dandragu.saasetl.company.application.CompanyAuthorizationService;
+import com.dandragu.saasetl.company.domain.Company;
+import com.dandragu.saasetl.identity.domain.MembershipRole;
 
 class CsvRemoveColumnControllerTest {
 
@@ -61,7 +67,8 @@ class CsvRemoveColumnControllerTest {
 		removeColumnExecutionService = org.mockito.Mockito.mock(RemoveColumnExecutionService.class);
 		CsvRemoveColumnController controller = new CsvRemoveColumnController(
 				removeColumnService,
-				removeColumnExecutionService);
+				removeColumnExecutionService,
+				mock(CompanyAuthorizationService.class));
 		mockMvc = MockMvcBuilders.standaloneSetup(controller)
 				.setControllerAdvice(new ApiExceptionHandler())
 				.build();
@@ -258,9 +265,11 @@ class CsvRemoveColumnControllerTest {
 				new CsvStreamReader());
 		RemoveColumnExecutionService actualExecutionService = new RemoveColumnExecutionService(
 				actualDownloadService,
-				new EtlExecutionHistoryService(new InMemoryEtlExecutionRepository()));
+				new EtlExecutionHistoryService(
+						new InMemoryEtlExecutionRepository(), authorizedCompany()));
 		MockMvc integrationMockMvc = MockMvcBuilders.standaloneSetup(
-					new CsvRemoveColumnController(removeColumnService, actualExecutionService))
+					new CsvRemoveColumnController(
+							removeColumnService, actualExecutionService, authorizedCompany()))
 				.setControllerAdvice(new ApiExceptionHandler())
 				.build();
 		StringBuilder csv = new StringBuilder("id,email\n");
@@ -278,6 +287,14 @@ class CsvRemoveColumnControllerTest {
 				.andExpect(jsonPath("$.path").value(DOWNLOAD_PATH))
 				.andExpect(content().string(org.hamcrest.Matchers.not(
 						org.hamcrest.Matchers.containsString("id,email"))));
+	}
+
+	private CompanyAuthorizationService authorizedCompany() {
+		Company company = mock(Company.class);
+		when(company.id()).thenReturn(UUID.randomUUID());
+		CompanyAuthorizationService authorization = mock(CompanyAuthorizationService.class);
+		when(authorization.require(any())).thenReturn(new CompanyAccess(company, MembershipRole.OWNER));
+		return authorization;
 	}
 
 	private RemoveColumnResult successResult(boolean truncated) {

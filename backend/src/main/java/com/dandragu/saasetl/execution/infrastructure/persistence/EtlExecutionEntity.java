@@ -21,6 +21,9 @@ class EtlExecutionEntity {
 	@Id
 	private UUID id;
 
+	@Column(name = "company_id")
+	private UUID companyId;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 50)
 	private EtlExecutionType type;
@@ -41,6 +44,12 @@ class EtlExecutionEntity {
 	@Column(name = "error_message", length = 500)
 	private String errorMessage;
 
+	@Column(name = "source_file_name", length = 255)
+	private String sourceFileName;
+
+	@Column(name = "result_file_name", length = 255)
+	private String resultFileName;
+
 	protected EtlExecutionEntity() {
 	}
 
@@ -54,22 +63,28 @@ class EtlExecutionEntity {
 	}
 
 	void updateFrom(EtlExecution execution) {
+		this.companyId = execution.companyId();
 		this.type = execution.type();
 		this.status = execution.status();
 		this.startedAt = execution.startedAt();
 		this.finishedAt = execution.finishedAt();
 		this.processedRecordCount = execution.processedRecordCount();
 		this.errorMessage = execution.errorMessage();
+		this.sourceFileName = execution.sourceFileName();
+		this.resultFileName = execution.resultFileName();
 	}
 
 	EtlExecution toDomain() {
 		return new EtlExecution(
 				id,
+				companyId,
 				type,
 				status,
 				startedAt,
 				finishedAt,
 				processedRecordCount,
-				errorMessage);
+				errorMessage,
+				sourceFileName,
+				resultFileName);
 	}
 }

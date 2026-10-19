@@ -13,5 +13,7 @@ public record EtlExecutionResponse(
 		Instant startedAt,
 		Instant finishedAt,
 		Long processedRecordCount,
-		String errorMessage) {
+		String errorMessage,
+		String sourceFileName,
+		String resultFileName) {
 }

@@ -1,19 +1,39 @@
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { App } from './app';
 import { of } from 'rxjs';
-import { EtlExecutionApiService } from './execution-history/etl-execution-api.service';
+import { AuthSessionService } from './auth/auth-session.service';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
+import { EtlExecutionApiService } from './execution-history/etl-execution-api.service';
 
 describe('App', () => {
+  const session = {
+    userId: 'user-1',
+    email: 'owner@example.com',
+    activeCompany: {
+      id: 'company-1',
+      name: 'Nexo',
+      defaultCurrency: 'EUR',
+      role: 'OWNER' as const,
+    },
+  };
+  const sessions = {
+    session: signal(session).asReadonly(),
+    loadSession: () => of(session),
+    getCompanies: () => of([session.activeCompany]),
+    selectCompany: () => of(session.activeCompany),
+    logout: () => of(undefined),
+  };
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideHttpClient(),
         provideRouter(routes),
+        { provide: AuthSessionService, useValue: sessions },
         {
           provide: EtlExecutionApiService,
           useValue: {

@@ -11,13 +11,16 @@ public interface EtlExecutionRepository {
 
 	EtlExecution save(EtlExecution execution);
 
-	Optional<EtlExecution> findById(UUID id);
+	Optional<EtlExecution> findByCompanyIdAndId(UUID companyId, UUID id);
 
-	Optional<EtlExecution> update(UUID id, UnaryOperator<EtlExecution> updateOperation);
+	Optional<EtlExecution> update(
+			UUID companyId,
+			UUID id,
+			UnaryOperator<EtlExecution> updateOperation);
 
-	List<EtlExecution> findAll();
+	List<EtlExecution> findAllByCompanyId(UUID companyId);
 
-	EtlExecutionPage search(EtlExecutionQuery query);
+	EtlExecutionPage search(UUID companyId, EtlExecutionQuery query);
 
-	EtlExecutionSummary summarize();
+	EtlExecutionSummary summarize(UUID companyId);
 }

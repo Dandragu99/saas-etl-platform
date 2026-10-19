@@ -25,6 +25,8 @@ import com.dandragu.saasetl.csv.application.RemoveColumnDownloadResult;
 import com.dandragu.saasetl.csv.application.RemoveColumnResult;
 import com.dandragu.saasetl.csv.application.RemoveColumnService;
 import com.dandragu.saasetl.execution.application.RemoveColumnExecutionService;
+import com.dandragu.saasetl.company.application.CompanyAuthorizationService;
+import com.dandragu.saasetl.company.application.CompanyPermission;
 
 @RestController
 @RequestMapping("/api/csv/transform")
@@ -38,12 +40,15 @@ public class CsvRemoveColumnController {
 
 	private final RemoveColumnService removeColumnService;
 	private final RemoveColumnExecutionService removeColumnExecutionService;
+	private final CompanyAuthorizationService authorizationService;
 
 	public CsvRemoveColumnController(
 			RemoveColumnService removeColumnService,
-			RemoveColumnExecutionService removeColumnExecutionService) {
+			RemoveColumnExecutionService removeColumnExecutionService,
+			CompanyAuthorizationService authorizationService) {
 		this.removeColumnService = removeColumnService;
 		this.removeColumnExecutionService = removeColumnExecutionService;
+		this.authorizationService = authorizationService;
 	}
 
 	@PostMapping(
@@ -78,6 +83,7 @@ public class CsvRemoveColumnController {
 	public CsvRemoveColumnResponse removeColumn(
 			@RequestPart("file") MultipartFile file,
 			@RequestParam(name = "column", required = false) String column) throws IOException {
+		authorizationService.require(CompanyPermission.ETL_EXECUTE);
 		CsvPreviewCommand fileCommand = new CsvPreviewCommand(
 				file.getOriginalFilename(),
 				file.getSize(),

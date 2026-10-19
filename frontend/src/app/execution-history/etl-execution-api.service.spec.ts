@@ -33,6 +33,8 @@ describe('EtlExecutionApiService', () => {
         finishedAt: '2026-10-09T10:00:01Z',
         processedRecordCount: 25,
         errorMessage: null,
+        sourceFileName: 'clientes.csv',
+        resultFileName: 'clientes-sin-email.csv',
       },
     ];
 

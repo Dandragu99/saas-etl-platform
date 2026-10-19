@@ -19,6 +19,8 @@ const EXECUTIONS: readonly EtlExecution[] = [
     finishedAt: '2026-10-09T10:01:05Z',
     processedRecordCount: 25,
     errorMessage: null,
+    sourceFileName: 'clientes.csv',
+    resultFileName: 'clientes-sin-email.csv',
   },
   {
     id: 'failed-id',
@@ -28,6 +30,8 @@ const EXECUTIONS: readonly EtlExecution[] = [
     finishedAt: '2026-10-09T09:00:00.500Z',
     processedRecordCount: null,
     errorMessage: 'La ejecución no pudo completarse.',
+    sourceFileName: 'fallo.csv',
+    resultFileName: null,
   },
   {
     id: 'running-id',
@@ -37,6 +41,8 @@ const EXECUTIONS: readonly EtlExecution[] = [
     finishedAt: null,
     processedRecordCount: null,
     errorMessage: null,
+    sourceFileName: null,
+    resultFileName: null,
   },
   {
     id: 'pending-id',
@@ -46,6 +52,8 @@ const EXECUTIONS: readonly EtlExecution[] = [
     finishedAt: null,
     processedRecordCount: null,
     errorMessage: null,
+    sourceFileName: null,
+    resultFileName: null,
   },
 ];
 
@@ -107,6 +115,8 @@ describe('EtlExecutionHistory', () => {
     expect(element.textContent).toContain('Eliminar columna');
     expect(element.textContent).toContain('1 min 5 s');
     expect(element.textContent).toContain('25');
+    expect(element.textContent).toContain('clientes.csv');
+    expect(element.textContent).toContain('clientes-sin-email.csv');
     expect(element.textContent).toContain('La ejecución no pudo completarse.');
     expect(element.textContent).toContain('< 1 s');
     expect(element.textContent).toContain('No disponible');

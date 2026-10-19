@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import com.dandragu.saasetl.csv.application.CsvPreviewError;
 import com.dandragu.saasetl.csv.application.CsvPreviewException;
@@ -20,9 +21,35 @@ import com.dandragu.saasetl.execution.api.InvalidEtlExecutionQueryException;
 import com.dandragu.saasetl.company.application.CompanyAccessDeniedException;
 import com.dandragu.saasetl.company.application.CompanyContextUnavailableException;
 import com.dandragu.saasetl.company.application.CompanyPermissionDeniedException;
+import com.dandragu.saasetl.identity.api.InvalidRegistrationRequestException;
+import com.dandragu.saasetl.identity.application.DuplicateUserEmailException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+	@ExceptionHandler({MethodArgumentNotValidException.class, InvalidRegistrationRequestException.class})
+	public ResponseEntity<ApiErrorResponse> handleInvalidRegistration(
+			Exception exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"INVALID_REGISTRATION",
+						"Los datos de registro no son válidos.",
+						HttpStatus.BAD_REQUEST),
+				request);
+	}
+
+	@ExceptionHandler(DuplicateUserEmailException.class)
+	public ResponseEntity<ApiErrorResponse> handleDuplicateUserEmail(
+			DuplicateUserEmailException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"EMAIL_ALREADY_REGISTERED",
+						"Ya existe una cuenta asociada a ese correo electrónico.",
+						HttpStatus.CONFLICT),
+				request);
+	}
 
 	@ExceptionHandler(CompanyContextUnavailableException.class)
 	public ResponseEntity<ApiErrorResponse> handleCompanyContextUnavailable(

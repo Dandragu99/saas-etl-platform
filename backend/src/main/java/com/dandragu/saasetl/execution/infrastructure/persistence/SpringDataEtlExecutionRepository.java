@@ -18,10 +18,19 @@ interface SpringDataEtlExecutionRepository extends JpaRepository<EtlExecutionEnt
 		JpaSpecificationExecutor<EtlExecutionEntity> {
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
-	@Query("select execution from EtlExecutionEntity execution where execution.id = :id")
-	Optional<EtlExecutionEntity> findByIdForUpdate(@Param("id") UUID id);
+	@Query("""
+			select execution from EtlExecutionEntity execution
+			where execution.companyId = :companyId and execution.id = :id
+			""")
+	Optional<EtlExecutionEntity> findByCompanyIdAndIdForUpdate(
+			@Param("companyId") UUID companyId,
+			@Param("id") UUID id);
 
-	long countByStatus(EtlExecutionStatus status);
+	Optional<EtlExecutionEntity> findByCompanyIdAndId(UUID companyId, UUID id);
 
-	long countByStatusIn(Collection<EtlExecutionStatus> statuses);
+	long countByCompanyId(UUID companyId);
+
+	long countByCompanyIdAndStatus(UUID companyId, EtlExecutionStatus status);
+
+	long countByCompanyIdAndStatusIn(UUID companyId, Collection<EtlExecutionStatus> statuses);
 }

@@ -37,14 +37,17 @@ public class JpaEtlExecutionRepository implements EtlExecutionRepository {
 
 	@Override
 	@Transactional(readOnly = true)
-	public Optional<EtlExecution> findById(UUID id) {
-		return repository.findById(id).map(EtlExecutionEntity::toDomain);
+	public Optional<EtlExecution> findByCompanyIdAndId(UUID companyId, UUID id) {
+		return repository.findByCompanyIdAndId(companyId, id).map(EtlExecutionEntity::toDomain);
 	}
 
 	@Override
 	@Transactional
-	public Optional<EtlExecution> update(UUID id, UnaryOperator<EtlExecution> updateOperation) {
-		return repository.findByIdForUpdate(id)
+	public Optional<EtlExecution> update(
+			UUID companyId,
+			UUID id,
+			UnaryOperator<EtlExecution> updateOperation) {
+		return repository.findByCompanyIdAndIdForUpdate(companyId, id)
 				.map(entity -> {
 					EtlExecution updated = updateOperation.apply(entity.toDomain());
 					entity.updateFrom(updated);
@@ -54,19 +57,19 @@ public class JpaEtlExecutionRepository implements EtlExecutionRepository {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<EtlExecution> findAll() {
-		return search(DEFAULT_QUERY).content();
+	public List<EtlExecution> findAllByCompanyId(UUID companyId) {
+		return search(companyId, DEFAULT_QUERY).content();
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public EtlExecutionPage search(EtlExecutionQuery query) {
+	public EtlExecutionPage search(UUID companyId, EtlExecutionQuery query) {
 		PageRequest pageable = PageRequest.of(
 				query.page(),
 				query.size(),
-				Sort.by(Sort.Direction.DESC, "startedAt"));
+				Sort.by(Sort.Order.desc("startedAt"), Sort.Order.desc("id")));
 		Specification<EtlExecutionEntity> specification = (root, criteriaQuery, builder) ->
-				builder.conjunction();
+				builder.equal(root.get("companyId"), companyId);
 		if (query.status() != null) {
 			specification = specification.and((root, criteriaQuery, builder) ->
 					builder.equal(root.get("status"), query.status()));
@@ -89,12 +92,12 @@ public class JpaEtlExecutionRepository implements EtlExecutionRepository {
 
 	@Override
 	@Transactional(readOnly = true)
-	public EtlExecutionSummary summarize() {
+	public EtlExecutionSummary summarize(UUID companyId) {
 		return new EtlExecutionSummary(
-				repository.count(),
-				repository.countByStatus(EtlExecutionStatus.SUCCESS),
-				repository.countByStatus(EtlExecutionStatus.FAILED),
-				repository.countByStatusIn(List.of(
+				repository.countByCompanyId(companyId),
+				repository.countByCompanyIdAndStatus(companyId, EtlExecutionStatus.SUCCESS),
+				repository.countByCompanyIdAndStatus(companyId, EtlExecutionStatus.FAILED),
+				repository.countByCompanyIdAndStatusIn(companyId, List.of(
 						EtlExecutionStatus.PENDING,
 						EtlExecutionStatus.RUNNING)));
 	}

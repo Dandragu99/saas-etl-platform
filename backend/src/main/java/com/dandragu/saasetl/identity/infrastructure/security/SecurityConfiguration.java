@@ -125,13 +125,17 @@ public class SecurityConfiguration {
 						.logoutSuccessHandler(new JsonLogoutSuccessHandler(csrfTokenRepository)))
 				.authorizeHttpRequests(authorize -> authorize
 						.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-						.requestMatchers("/api/health", "/api/auth/csrf", "/api/auth/login").permitAll()
-						.requestMatchers("/api/etl/executions/**").denyAll()
+						.requestMatchers(
+								"/api/health",
+								"/api/auth/csrf",
+								"/api/auth/login",
+								"/api/auth/register").permitAll()
 						.requestMatchers(
 								"/api/auth/session",
 								"/api/auth/session/company",
 								"/api/auth/companies",
 								"/api/auth/logout",
+								"/api/etl/executions/**",
 								"/api/csv/**").authenticated()
 						.anyRequest().denyAll())
 				.addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)

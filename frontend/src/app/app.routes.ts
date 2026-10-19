@@ -1,11 +1,23 @@
 import { Routes } from '@angular/router';
 
 import { MainLayout } from './layout/main-layout';
+import { authGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    title: 'Iniciar sesión | Nexo ERP',
+    loadComponent: () => import('./auth/login/login').then((module) => module.Login),
+  },
+  {
+    path: 'registro',
+    title: 'Crear cuenta | Nexo ERP',
+    loadComponent: () => import('./auth/register/register').then((module) => module.Register),
+  },
+  {
     path: '',
     component: MainLayout,
+    canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {

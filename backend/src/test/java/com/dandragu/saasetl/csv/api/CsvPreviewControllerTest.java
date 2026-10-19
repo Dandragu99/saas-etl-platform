@@ -34,6 +34,7 @@ import com.dandragu.saasetl.csv.application.CsvPreviewError;
 import com.dandragu.saasetl.csv.application.CsvPreviewException;
 import com.dandragu.saasetl.csv.application.CsvPreviewResult;
 import com.dandragu.saasetl.csv.application.CsvPreviewService;
+import com.dandragu.saasetl.company.application.CompanyAuthorizationService;
 
 class CsvPreviewControllerTest {
 
@@ -43,7 +44,8 @@ class CsvPreviewControllerTest {
 	@BeforeEach
 	void setUp() {
 		csvPreviewService = mock(CsvPreviewService.class);
-		CsvPreviewController controller = new CsvPreviewController(csvPreviewService);
+		CsvPreviewController controller = new CsvPreviewController(
+				csvPreviewService, mock(CompanyAuthorizationService.class));
 		mockMvc = MockMvcBuilders.standaloneSetup(controller)
 				.setControllerAdvice(new ApiExceptionHandler())
 				.build();

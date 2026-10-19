@@ -36,16 +36,21 @@ public class CompanyAuthorizationService {
 				CompanyPermission.PRODUCT_READ,
 				CompanyPermission.PRODUCT_WRITE,
 				CompanyPermission.INVENTORY_READ,
-				CompanyPermission.INVENTORY_WRITE));
+				CompanyPermission.INVENTORY_WRITE,
+				CompanyPermission.ETL_READ,
+				CompanyPermission.ETL_EXECUTE));
 		permissions.put(MembershipRole.INVENTORY_MANAGER, EnumSet.of(
 				CompanyPermission.COMPANY_READ,
 				CompanyPermission.PRODUCT_READ,
 				CompanyPermission.INVENTORY_READ,
-				CompanyPermission.INVENTORY_WRITE));
+				CompanyPermission.INVENTORY_WRITE,
+				CompanyPermission.ETL_READ,
+				CompanyPermission.ETL_EXECUTE));
 		permissions.put(MembershipRole.VIEWER, EnumSet.of(
 				CompanyPermission.COMPANY_READ,
 				CompanyPermission.PRODUCT_READ,
-				CompanyPermission.INVENTORY_READ));
+				CompanyPermission.INVENTORY_READ,
+				CompanyPermission.ETL_READ));
 		return Map.copyOf(permissions);
 	}
 }

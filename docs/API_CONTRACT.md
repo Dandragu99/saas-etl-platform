@@ -571,6 +571,10 @@ Las respuestas de error usan `application/json` y la estructura común documenta
 
 ## 14. Historial de ejecuciones ETL
 
+Los endpoints de historial requieren sesión, empresa activa y permiso `ETL_READ`. El backend obtiene
+la empresa exclusivamente de `CompanyContext`; no admite `companyId` como parámetro. Los registros
+anteriores a V6 que no tienen empresa permanecen ocultos.
+
 ### 14.1. Endpoint
 
 ```http
@@ -627,13 +631,17 @@ Cuando no existen ejecuciones, la respuesta es un array vacío:
 | `finishedAt` | fecha ISO-8601 o `null` | Momento de finalización, si la ejecución ha terminado. |
 | `processedRecordCount` | número o `null` | Filas de datos procesadas correctamente; no incluye el encabezado. |
 | `errorMessage` | texto o `null` | Mensaje público y controlado para una ejecución fallida. |
+| `sourceFileName` | texto o `null` | Nombre base saneado del CSV, sin rutas locales. |
+| `resultFileName` | texto o `null` | Nombre de descarga generado cuando existe un resultado correcto. |
 
 ### 14.3. Reglas y límites
 
 - Esta primera versión registra las descargas completas de eliminación de columna.
 - El historial se almacena en PostgreSQL y se conserva entre reinicios.
-- Flyway crea y versiona la tabla `etl_executions`.
-- No se almacenan archivos, contenido CSV, nombres de archivo, nombres de columnas, datos personales, excepciones ni stack traces.
+- Flyway crea y versiona la tabla `etl_executions`; V6 incorpora el aislamiento por empresa.
+- No se almacenan archivos, contenido CSV, nombres de columnas, datos de filas, excepciones ni stack traces.
+- Solo se guardan nombres base saneados de origen y resultado; nunca rutas locales.
+- La paginación usa orden estable por `started_at DESC, id DESC`.
 - Si una ejecución antigua es expulsada por el límite de 100, su finalización posterior no debe interrumpir la transformación CSV.
 - Los errores de validación, lectura o generación detectados dentro del caso de uso pueden registrarse como `FAILED`.
 - Los errores multipart anteriores al controlador no generan una ejecución.
@@ -647,3 +655,69 @@ Cuando no existen ejecuciones, la respuesta es un array vacío:
 4. El historial se puede filtrar por estado y fechas, y paginar sin cambiar el formato del cuerpo.
 5. Las peticiones concurrentes actualizan cada ejecución de forma transaccional.
 6. La respuesta no contiene nombres de archivo, columnas, contenido CSV ni detalles técnicos de excepciones.
+
+## 15. Autenticación y empresa activa
+
+La autenticación utiliza una sesión de servidor persistida mediante Spring Session JDBC. El
+identificador se transporta en la cookie `NEXO_SESSION`, que es HttpOnly, SameSite=Lax y Secure en
+producción. Las credenciales y los hashes de contraseña nunca forman parte de una respuesta.
+
+### 15.1. CSRF
+
+Antes de cada operación que modifica estado, el cliente obtiene un token mediante:
+
+```http
+GET /api/auth/csrf
+```
+
+El servidor crea la cookie legible `XSRF-TOKEN`; Angular la refleja en la cabecera
+`X-XSRF-TOKEN`. Esto también se aplica al registro, login, logout, selección de empresa y a las
+peticiones multipart CSV. CSRF no está deshabilitado globalmente.
+
+### 15.2. Registro
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "persona@example.com",
+  "password": "una-clave-de-al-menos-12-caracteres",
+  "companyName": "Mi empresa",
+  "defaultCurrency": "EUR"
+}
+```
+
+El caso de uso existente crea transaccionalmente el usuario, la empresa y una membresía `OWNER`.
+Devuelve 201 con `userId` y `companyId`; no inicia sesión automáticamente. Un email duplicado
+devuelve `EMAIL_ALREADY_REGISTERED` (409) y una entrada inválida `INVALID_REGISTRATION` (400).
+
+### 15.3. Sesión
+
+```http
+POST /api/auth/login
+GET  /api/auth/session
+POST /api/auth/logout
+```
+
+El login recibe únicamente `email` y `password`. Las credenciales incorrectas usan un error
+genérico. Una sesión correcta expone `userId`, `email` y `activeCompany`, nunca la contraseña o su
+hash. El logout invalida la sesión del servidor y elimina su cookie.
+
+### 15.4. Acceso multiempresa
+
+```http
+GET /api/auth/companies
+PUT /api/auth/session/company
+```
+
+La consulta enumera exclusivamente membresías activas del usuario. La selección recibe
+`{ "companyId": "<uuid>" }`, pero el identificador es solo una solicitud: el backend revalida el
+usuario, la membresía y la empresa antes de guardarlo en la sesión. El `companyId` enviado por el
+cliente nunca se utiliza directamente como fuente de autorización.
+
+Cuando solo existe una membresía activa, el backend puede seleccionarla después de autenticar. Con
+varias empresas, la elección es explícita. El frontend recarga la aplicación después del cambio
+para descartar el estado empresarial previo.

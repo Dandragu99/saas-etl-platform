@@ -75,6 +75,8 @@ public class EtlExecutionController {
 				execution.startedAt(),
 				execution.finishedAt(),
 				execution.processedRecordCount(),
-				execution.errorMessage());
+				execution.errorMessage(),
+				execution.sourceFileName(),
+				execution.resultFileName());
 	}
 }

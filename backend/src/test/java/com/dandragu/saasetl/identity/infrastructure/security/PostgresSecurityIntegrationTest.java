@@ -74,10 +74,59 @@ class PostgresSecurityIntegrationTest {
 	void cleanDatabase() {
 		jdbcTemplate.update("DELETE FROM SPRING_SESSION_ATTRIBUTES");
 		jdbcTemplate.update("DELETE FROM SPRING_SESSION");
+		jdbcTemplate.update("DELETE FROM etl_executions");
 		jdbcTemplate.update("DELETE FROM company_memberships");
 		jdbcTemplate.update("DELETE FROM products");
 		jdbcTemplate.update("DELETE FROM users");
 		jdbcTemplate.update("DELETE FROM companies");
+	}
+
+	@Test
+	void shouldIsolateEtlHistoryByActiveCompanyAndRevokeAccessImmediately() throws Exception {
+		RegistrationResult first = registerUser();
+		RegistrationResult second = registrationService.register(new RegisterUserCommand(
+				"second@example.com",
+				PASSWORD,
+				"Second Company",
+				new CurrencyCode("EUR")));
+		AuthenticatedState firstSession = login(EMAIL, PASSWORD);
+		AuthenticatedState secondSession = login("second@example.com", PASSWORD);
+
+		downloadCsv(firstSession, "first-company.csv");
+		downloadCsv(secondSession, "second-company.csv");
+
+		mockMvc.perform(get("/api/etl/executions")
+						.secure(true)
+						.cookie(firstSession.session(), firstSession.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].sourceFileName").value("first-company.csv"))
+				.andExpect(jsonPath("$[0].resultFileName").value("first-company-sin-email.csv"))
+				.andExpect(jsonPath("$[1]").doesNotExist());
+
+		mockMvc.perform(get("/api/etl/executions")
+						.secure(true)
+						.cookie(secondSession.session(), secondSession.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].sourceFileName").value("second-company.csv"))
+				.andExpect(jsonPath("$[1]").doesNotExist());
+
+		assertThat(jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM etl_executions WHERE company_id = ?",
+				Integer.class,
+				first.companyId())).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM etl_executions WHERE company_id = ?",
+				Integer.class,
+				second.companyId())).isEqualTo(1);
+
+		jdbcTemplate.update(
+				"UPDATE company_memberships SET status = 'SUSPENDED' WHERE user_id = ? AND company_id = ?",
+				first.userId().value(),
+				first.companyId());
+		mockMvc.perform(get("/api/etl/executions")
+						.secure(true)
+						.cookie(firstSession.session(), firstSession.csrf()))
+				.andExpect(status().isForbidden());
 	}
 
 	@AfterEach
@@ -151,6 +200,74 @@ class PostgresSecurityIntegrationTest {
 		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION", Integer.class)).isZero();
 		mockMvc.perform(get("/api/auth/session").secure(true).cookie(authenticatedSession))
 				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void shouldRegisterWithCsrfThenLoginWithoutExposingThePassword() throws Exception {
+		CsrfState csrf = getCsrf(null);
+
+		mockMvc.perform(post("/api/auth/register")
+						.secure(true)
+						.cookie(csrf.session(), csrf.csrf())
+						.header("X-XSRF-TOKEN", csrf.token())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(validRegistrationJson()))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.userId").isString())
+				.andExpect(jsonPath("$.companyId").isString())
+				.andExpect(jsonPath("$.password").doesNotExist())
+				.andExpect(jsonPath("$.passwordHash").doesNotExist());
+
+		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM companies", Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM company_memberships WHERE role = 'OWNER' AND status = 'ACTIVE'",
+				Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(
+				"SELECT password_hash FROM users WHERE normalized_email = ?",
+				String.class,
+				EMAIL)).doesNotContain(PASSWORD);
+
+		AuthenticatedState authenticated = login();
+		mockMvc.perform(get("/api/auth/session")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.email").value(EMAIL))
+				.andExpect(jsonPath("$.activeCompany.role").value("OWNER"));
+	}
+
+	@Test
+	void shouldRequireCsrfAndRejectInvalidOrDuplicateRegistration() throws Exception {
+		CsrfState csrf = getCsrf(null);
+		mockMvc.perform(post("/api/auth/register")
+						.secure(true)
+						.cookie(csrf.session(), csrf.csrf())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(validRegistrationJson()))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+
+		mockMvc.perform(post("/api/auth/register")
+						.secure(true)
+						.cookie(csrf.session(), csrf.csrf())
+						.header("X-XSRF-TOKEN", csrf.token())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"email\":\"invalid\",\"password\":\"short\",\"companyName\":\"\",\"defaultCurrency\":\"euro\"}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_REGISTRATION"));
+		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Integer.class)).isZero();
+
+		registerUser();
+		CsrfState renewed = getCsrf(csrf.session());
+		mockMvc.perform(post("/api/auth/register")
+						.secure(true)
+						.cookie(renewed.session(), renewed.csrf())
+						.header("X-XSRF-TOKEN", renewed.token())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(validRegistrationJson()))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("EMAIL_ALREADY_REGISTERED"));
 	}
 
 	@Test
@@ -343,7 +460,7 @@ class PostgresSecurityIntegrationTest {
 	}
 
 	@Test
-	void shouldDenyAnonymousBusinessEndpointsAndAllGlobalHistoryAccess() throws Exception {
+	void shouldDenyAnonymousBusinessEndpointsAndAllowAuthorizedCompanyHistory() throws Exception {
 		mockMvc.perform(get("/api/auth/session").secure(true))
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
@@ -355,8 +472,8 @@ class PostgresSecurityIntegrationTest {
 		mockMvc.perform(get("/api/etl/executions")
 						.secure(true)
 						.cookie(authenticated.session(), authenticated.csrf()))
-				.andExpect(status().isForbidden())
-				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isEmpty());
 	}
 
 	@Test
@@ -377,18 +494,37 @@ class PostgresSecurityIntegrationTest {
 	}
 
 	private AuthenticatedState login() throws Exception {
+		return login(EMAIL, PASSWORD);
+	}
+
+	private AuthenticatedState login(String email, String password) throws Exception {
 		CsrfState anonymous = getCsrf(null);
 		MvcResult login = mockMvc.perform(post("/api/auth/login")
 						.secure(true)
 						.cookie(anonymous.session(), anonymous.csrf())
 						.header("X-XSRF-TOKEN", anonymous.token())
 						.contentType(MediaType.APPLICATION_JSON)
-						.content(validLoginJson()))
+						.content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
 		Cookie session = requireCookie(login, "NEXO_SESSION");
 		CsrfState renewed = getCsrf(session);
 		return new AuthenticatedState(session, renewed.csrf(), renewed.token());
+	}
+
+	private void downloadCsv(AuthenticatedState authenticated, String fileName) throws Exception {
+		MockMultipartFile csv = new MockMultipartFile(
+				"file",
+				fileName,
+				"text/csv",
+				"id,email\n1,ana@example.com".getBytes(StandardCharsets.UTF_8));
+		mockMvc.perform(multipart("/api/csv/transform/remove-column/download")
+						.file(csv)
+						.param("column", "email")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf())
+						.header("X-XSRF-TOKEN", authenticated.token()))
+				.andExpect(status().isOk());
 	}
 
 	private org.springframework.test.web.servlet.ResultActions selectCompany(
@@ -454,6 +590,13 @@ class PostgresSecurityIntegrationTest {
 
 	private static String validLoginJson() {
 		return "{\"email\":\"owner@example.com\",\"password\":\"correct horse battery staple\"}";
+	}
+
+	private static String validRegistrationJson() {
+		return """
+				{"email":"owner@example.com","password":"correct horse battery staple",\
+				"companyName":"Security Test Company","defaultCurrency":"EUR"}
+				""";
 	}
 
 	private static Stream<String> inactiveStatuses() {

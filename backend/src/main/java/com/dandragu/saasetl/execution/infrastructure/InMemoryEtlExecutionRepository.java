@@ -1,7 +1,6 @@
 package com.dandragu.saasetl.execution.infrastructure;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +37,11 @@ public class InMemoryEtlExecutionRepository implements EtlExecutionRepository {
 	}
 
 	@Override
-	public Optional<EtlExecution> findById(UUID id) {
+	public Optional<EtlExecution> findByCompanyIdAndId(UUID companyId, UUID id) {
 		lock.readLock().lock();
 		try {
-			return Optional.ofNullable(executions.get(id));
+			return Optional.ofNullable(executions.get(id))
+					.filter(execution -> companyId.equals(execution.companyId()));
 		}
 		finally {
 			lock.readLock().unlock();
@@ -50,12 +50,13 @@ public class InMemoryEtlExecutionRepository implements EtlExecutionRepository {
 
 	@Override
 	public Optional<EtlExecution> update(
+			UUID companyId,
 			UUID id,
 			UnaryOperator<EtlExecution> updateOperation) {
 		lock.writeLock().lock();
 		try {
 			EtlExecution currentExecution = executions.get(id);
-			if (currentExecution == null) {
+			if (currentExecution == null || !companyId.equals(currentExecution.companyId())) {
 				return Optional.empty();
 			}
 
@@ -69,11 +70,15 @@ public class InMemoryEtlExecutionRepository implements EtlExecutionRepository {
 	}
 
 	@Override
-	public List<EtlExecution> findAll() {
+	public List<EtlExecution> findAllByCompanyId(UUID companyId) {
 		lock.readLock().lock();
 		try {
 			List<EtlExecution> newestFirst = new ArrayList<>(executions.values());
-			Collections.reverse(newestFirst);
+			newestFirst.removeIf(execution -> !companyId.equals(execution.companyId()));
+			newestFirst.sort((left, right) -> {
+				int byDate = right.startedAt().compareTo(left.startedAt());
+				return byDate != 0 ? byDate : right.id().compareTo(left.id());
+			});
 			return List.copyOf(newestFirst);
 		}
 		finally {
@@ -82,8 +87,8 @@ public class InMemoryEtlExecutionRepository implements EtlExecutionRepository {
 	}
 
 	@Override
-	public EtlExecutionPage search(EtlExecutionQuery query) {
-		List<EtlExecution> filtered = findAll().stream()
+	public EtlExecutionPage search(UUID companyId, EtlExecutionQuery query) {
+		List<EtlExecution> filtered = findAllByCompanyId(companyId).stream()
 				.filter(execution -> query.status() == null || execution.status() == query.status())
 				.filter(execution -> query.startedFrom() == null
 						|| !execution.startedAt().isBefore(query.startedFrom()))
@@ -100,8 +105,8 @@ public class InMemoryEtlExecutionRepository implements EtlExecutionRepository {
 	}
 
 	@Override
-	public EtlExecutionSummary summarize() {
-		List<EtlExecution> all = findAll();
+	public EtlExecutionSummary summarize(UUID companyId) {
+		List<EtlExecution> all = findAllByCompanyId(companyId);
 		long successful = all.stream().filter(execution -> execution.status() == EtlExecutionStatus.SUCCESS).count();
 		long failed = all.stream().filter(execution -> execution.status() == EtlExecutionStatus.FAILED).count();
 		long inProgress = all.stream()

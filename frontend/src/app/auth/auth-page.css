@@ -1,0 +1,134 @@
+:host {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem;
+  background: radial-gradient(circle at top left, rgb(79 70 229 / 14%), transparent 34rem), #f4f6fa;
+}
+
+.auth-card {
+  width: min(100%, 29rem);
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+  border: 1px solid #e1e6ee;
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 24px 60px rgb(15 23 42 / 10%);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: #172033;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  color: white;
+  background: linear-gradient(145deg, #6366f1, #2563eb);
+  font-weight: 800;
+}
+
+h1 {
+  margin: 2rem 0 0.5rem;
+  color: #172033;
+  font-size: 1.75rem;
+  letter-spacing: -0.03em;
+}
+
+.intro,
+.alternative {
+  color: #697386;
+  line-height: 1.55;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+label {
+  display: grid;
+  gap: 0.4rem;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cfd7e3;
+  border-radius: 0.6rem;
+  color: #172033;
+  background: white;
+}
+
+input:focus,
+select:focus {
+  border-color: #6366f1;
+  outline: 3px solid rgb(99 102 241 / 15%);
+}
+
+.field-error {
+  color: #b42318;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.request-error,
+.success-message {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.request-error {
+  color: #912018;
+  background: #fef3f2;
+}
+
+.success-message {
+  color: #166534;
+  background: #f0fdf4;
+}
+
+button {
+  min-height: 2.9rem;
+  border: 0;
+  border-radius: 0.65rem;
+  color: white;
+  background: #4f46e5;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.alternative {
+  margin: 1.5rem 0 0;
+  text-align: center;
+  font-size: 0.84rem;
+}
+
+.alternative a {
+  color: #4338ca;
+  font-weight: 750;
+}

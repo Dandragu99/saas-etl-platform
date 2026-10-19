@@ -60,7 +60,36 @@
           <strong>{{ pageTitle() }}</strong>
         </div>
       </div>
-      <div class="environment-badge"><span aria-hidden="true"></span>Entorno de desarrollo</div>
+      <div class="session-controls">
+        <label class="company-selector">
+          <span>Empresa activa</span>
+          <select
+            aria-label="Empresa activa"
+            [value]="session()?.activeCompany?.id ?? ''"
+            [disabled]="companyLoading() || sessionActionPending()"
+            (change)="changeCompany($event)"
+          >
+            @if (session()?.activeCompany === null) {
+              <option value="">Selecciona una empresa</option>
+            }
+            @for (company of companies(); track company.id) {
+              <option [value]="company.id">{{ company.name }}</option>
+            }
+          </select>
+        </label>
+        <div class="user-summary">
+          <strong>{{ session()?.email }}</strong>
+          <small>{{ session()?.activeCompany?.role ?? 'Sin empresa activa' }}</small>
+        </div>
+        <button
+          class="logout-button"
+          type="button"
+          [disabled]="sessionActionPending()"
+          (click)="logout()"
+        >
+          Salir
+        </button>
+      </div>
     </header>
 
     <main id="main-content" class="content" tabindex="-1">

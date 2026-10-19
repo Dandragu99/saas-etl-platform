@@ -20,6 +20,7 @@ import com.dandragu.saasetl.execution.domain.EtlExecutionStatus;
 import com.dandragu.saasetl.execution.domain.EtlExecutionType;
 
 class InMemoryEtlExecutionRepositoryTest {
+	private static final UUID COMPANY_ID = UUID.randomUUID();
 
 	@Test
 	void shouldKeepOnlyLatestOneHundredExecutions() {
@@ -32,15 +33,17 @@ class InMemoryEtlExecutionRepositoryTest {
 			ids.add(id);
 			repository.save(EtlExecution.pending(
 					id,
+					COMPANY_ID,
 					EtlExecutionType.REMOVE_COLUMN,
-					firstStart.plusSeconds(index)));
+					firstStart.plusSeconds(index),
+					null));
 		}
 
-		List<EtlExecution> history = repository.findAll();
+		List<EtlExecution> history = repository.findAllByCompanyId(COMPANY_ID);
 		assertThat(history).hasSize(InMemoryEtlExecutionRepository.MAX_HISTORY_SIZE);
 		assertThat(history.getFirst().id()).isEqualTo(ids.get(104));
 		assertThat(history.getLast().id()).isEqualTo(ids.get(5));
-		assertThat(repository.findById(ids.getFirst())).isEmpty();
+		assertThat(repository.findByCompanyIdAndId(COMPANY_ID, ids.getFirst())).isEmpty();
 	}
 
 	@Test
@@ -57,9 +60,11 @@ class InMemoryEtlExecutionRepositoryTest {
 				start.await();
 				repository.save(EtlExecution.pending(
 						UUID.randomUUID(),
+						COMPANY_ID,
 						EtlExecutionType.REMOVE_COLUMN,
-						Instant.parse("2026-10-09T10:00:00Z").plusMillis(currentIndex)));
-				repository.findAll();
+						Instant.parse("2026-10-09T10:00:00Z").plusMillis(currentIndex),
+						null));
+				repository.findAllByCompanyId(COMPANY_ID);
 				return null;
 			});
 		}
@@ -78,7 +83,7 @@ class InMemoryEtlExecutionRepositoryTest {
 			assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
 		}
 
-		assertThat(repository.findAll())
+		assertThat(repository.findAllByCompanyId(COMPANY_ID))
 				.hasSize(InMemoryEtlExecutionRepository.MAX_HISTORY_SIZE)
 				.extracting(EtlExecution::id)
 				.doesNotHaveDuplicates();
@@ -89,21 +94,43 @@ class InMemoryEtlExecutionRepositoryTest {
 		InMemoryEtlExecutionRepository repository = new InMemoryEtlExecutionRepository();
 		EtlExecution first = EtlExecution.pending(
 				UUID.randomUUID(),
+				COMPANY_ID,
 				EtlExecutionType.REMOVE_COLUMN,
-				Instant.parse("2026-10-09T10:00:00Z"));
+				Instant.parse("2026-10-09T10:00:00Z"),
+				null);
 		EtlExecution second = EtlExecution.pending(
 				UUID.randomUUID(),
+				COMPANY_ID,
 				EtlExecutionType.REMOVE_COLUMN,
-				Instant.parse("2026-10-09T10:00:01Z"));
+				Instant.parse("2026-10-09T10:00:01Z"),
+				null);
 		repository.save(first);
 		repository.save(second);
 
-		repository.update(first.id(), EtlExecution::start);
+		repository.update(COMPANY_ID, first.id(), EtlExecution::start);
 
-		assertThat(repository.findAll())
+		assertThat(repository.findAllByCompanyId(COMPANY_ID))
 				.extracting(EtlExecution::id)
 				.containsExactly(second.id(), first.id());
-		assertThat(repository.findById(first.id()).orElseThrow().status())
+		assertThat(repository.findByCompanyIdAndId(COMPANY_ID, first.id()).orElseThrow().status())
 				.isEqualTo(EtlExecutionStatus.RUNNING);
+	}
+
+	@Test
+	void shouldUseStableOrderingAndNeverFindAnExecutionThroughAnotherCompany() {
+		InMemoryEtlExecutionRepository repository = new InMemoryEtlExecutionRepository();
+		UUID otherCompanyId = UUID.randomUUID();
+		Instant sameStart = Instant.parse("2026-10-09T10:00:00Z");
+		UUID lowerId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+		UUID higherId = UUID.fromString("00000000-0000-0000-0000-000000000002");
+		repository.save(EtlExecution.pending(
+				lowerId, COMPANY_ID, EtlExecutionType.REMOVE_COLUMN, sameStart, null));
+		repository.save(EtlExecution.pending(
+				higherId, COMPANY_ID, EtlExecutionType.REMOVE_COLUMN, sameStart, null));
+
+		assertThat(repository.findAllByCompanyId(COMPANY_ID))
+				.extracting(EtlExecution::id)
+				.containsExactly(higherId, lowerId);
+		assertThat(repository.findByCompanyIdAndId(otherCompanyId, higherId)).isEmpty();
 	}
 }

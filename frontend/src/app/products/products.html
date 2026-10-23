@@ -1,0 +1,152 @@
+<section class="products-page" aria-labelledby="products-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Catálogo</p>
+      <h1 id="products-title">Productos</h1>
+      <p>Consulta el catálogo de la empresa activa y encuentra rápidamente cada referencia.</p>
+    </div>
+    @if (status() === 'success') {
+      <span class="result-count" aria-live="polite">{{ totalElements() }} productos</span>
+    }
+  </header>
+
+  <form class="filters" aria-label="Filtros de productos" (submit)="applyFilters($event)">
+    <label>
+      <span>Nombre</span>
+      <input
+        type="search"
+        placeholder="Buscar por nombre"
+        [value]="nameFilter()"
+        (input)="updateName($event)"
+      />
+    </label>
+    <label>
+      <span>SKU</span>
+      <input
+        type="search"
+        placeholder="Buscar por SKU"
+        [value]="skuFilter()"
+        (input)="updateSku($event)"
+      />
+    </label>
+    <label>
+      <span>Categoría</span>
+      <input
+        type="search"
+        placeholder="Todas las categorías"
+        [value]="categoryFilter()"
+        (input)="updateCategory($event)"
+      />
+    </label>
+    <label>
+      <span>Estado</span>
+      <select
+        [value]="activeFilter() === undefined ? '' : activeFilter()"
+        (change)="updateActive($event)"
+      >
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+    </label>
+    <div class="filter-actions">
+      <button type="submit">Buscar</button>
+      <button class="secondary" type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  <div class="list-toolbar">
+    <label>
+      <span>Ordenar por</span>
+      <select [value]="sort()" (change)="updateSort($event)">
+        <option value="name">Nombre</option>
+        <option value="sku">SKU</option>
+        <option value="category">Categoría</option>
+        <option value="price">Precio</option>
+        <option value="created_at">Fecha de alta</option>
+        <option value="updated_at">Última actualización</option>
+      </select>
+    </label>
+    <label>
+      <span>Dirección</span>
+      <select [value]="direction()" (change)="updateDirection($event)">
+        <option value="asc">Ascendente</option>
+        <option value="desc">Descendente</option>
+      </select>
+    </label>
+  </div>
+
+  @if (status() === 'loading') {
+    <div class="state loading" role="status" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>Cargando productos…
+    </div>
+  }
+
+  @if (status() === 'error' && errorMessage(); as message) {
+    <div class="state error" role="alert">
+      <strong>No se pudo obtener el catálogo.</strong>
+      <span>{{ message }}</span>
+      <button type="button" (click)="retry()">Reintentar</button>
+    </div>
+  }
+
+  @if (status() === 'success' && products().length === 0) {
+    <div class="state empty" role="status">
+      <span class="empty-icon" aria-hidden="true">□</span>
+      <strong>No hay productos para mostrar.</strong>
+      <span>Prueba con otros filtros o añade productos mediante la API.</span>
+    </div>
+  }
+
+  @if (status() === 'success' && products().length > 0) {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">SKU</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Categoría</th>
+            <th scope="col" class="numeric">Precio</th>
+            <th scope="col">Moneda</th>
+            <th scope="col">Unidad</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of products(); track product.id) {
+            <tr>
+              <td data-label="SKU">
+                <code>{{ product.sku }}</code>
+              </td>
+              <td data-label="Nombre">
+                <strong>{{ product.name }}</strong>
+              </td>
+              <td data-label="Categoría">{{ product.category }}</td>
+              <td data-label="Precio" class="numeric">{{ product.price }}</td>
+              <td data-label="Moneda">{{ product.currency }}</td>
+              <td data-label="Unidad">{{ unitLabel(product.unitOfMeasure) }}</td>
+              <td data-label="Estado">
+                <span class="status-badge" [attr.data-active]="product.active">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  {{ product.active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (totalPages() > 1) {
+      <nav class="pagination" aria-label="Paginación de productos">
+        <button type="button" [disabled]="currentPage() === 0" (click)="previousPage()">
+          Anterior
+        </button>
+        <span>Página {{ currentPage() + 1 }} de {{ totalPages() }}</span>
+        <button type="button" [disabled]="currentPage() + 1 >= totalPages()" (click)="nextPage()">
+          Siguiente
+        </button>
+      </nav>
+    }
+  }
+</section>

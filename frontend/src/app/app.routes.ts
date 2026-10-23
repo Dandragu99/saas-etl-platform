@@ -33,6 +33,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./csv-preview/csv-preview').then((module) => module.CsvPreview),
       },
+      {
+        path: 'productos',
+        title: 'Productos | Nexo ERP',
+        data: { pageTitle: 'Productos' },
+        loadComponent: () => import('./products/products').then((module) => module.Products),
+      },
       ...comingSoonRoutes(),
     ],
   },
@@ -45,11 +51,6 @@ function comingSoonRoutes(): Routes {
       path: 'documentos',
       title: 'Documentos',
       description: 'Organiza y consulta los documentos de tu negocio desde un único lugar.',
-    },
-    {
-      path: 'productos',
-      title: 'Productos',
-      description: 'Administra tu catálogo de productos y servicios.',
     },
     {
       path: 'inventario',

@@ -41,7 +41,7 @@ describe('MainLayout', () => {
       'Dashboard',
       'DocumentosPronto',
       'Transformaciones',
-      'ProductosPronto',
+      'Productos',
       'InventarioPronto',
       'ClientesPronto',
       'VentasPronto',

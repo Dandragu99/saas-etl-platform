@@ -5,10 +5,27 @@
       <h1 id="products-title">Productos</h1>
       <p>Consulta el catálogo de la empresa activa y encuentra rápidamente cada referencia.</p>
     </div>
-    @if (status() === 'success') {
-      <span class="result-count" aria-live="polite">{{ totalElements() }} productos</span>
-    }
+    <div class="header-actions">
+      @if (status() === 'success') {
+        <span class="result-count" aria-live="polite">{{ totalElements() }} productos</span>
+      }
+      @if (canWrite()) {
+        <button type="button" (click)="createProduct()">Nuevo producto</button>
+      }
+    </div>
   </header>
+
+  @if (operationMessage(); as message) {
+    <div class="operation-notice success-notice" role="status">{{ message }}</div>
+  }
+  @if (operationError(); as message) {
+    <div class="operation-notice error-notice" role="alert">
+      <span>{{ message }}</span>
+      @if (message.includes('Recarga')) {
+        <button type="button" (click)="reloadAfterConflict()">Recargar catálogo</button>
+      }
+    </div>
+  }
 
   <form class="filters" aria-label="Filtros de productos" (submit)="applyFilters($event)">
     <label>
@@ -110,6 +127,9 @@
             <th scope="col">Moneda</th>
             <th scope="col">Unidad</th>
             <th scope="col">Estado</th>
+            @if (canWrite()) {
+              <th scope="col">Acciones</th>
+            }
           </tr>
         </thead>
         <tbody>
@@ -131,6 +151,20 @@
                   {{ product.active ? 'Activo' : 'Inactivo' }}
                 </span>
               </td>
+              @if (canWrite()) {
+                <td data-label="Acciones" class="row-actions">
+                  <button class="link-button" type="button" (click)="editProduct(product)">
+                    Editar
+                  </button>
+                  <button
+                    class="link-button status-action"
+                    type="button"
+                    (click)="requestStatusChange(product)"
+                  >
+                    {{ product.active ? 'Desactivar' : 'Reactivar' }}
+                  </button>
+                </td>
+              }
             </tr>
           }
         </tbody>
@@ -150,3 +184,47 @@
     }
   }
 </section>
+
+@if (editedProduct() !== undefined && activeCompanyId(); as companyId) {
+  <app-product-form
+    [product]="editedProduct() ?? null"
+    [companyId]="companyId"
+    (saved)="productSaved($event)"
+    (cancelled)="closeEditor()"
+  />
+}
+
+@if (statusProduct(); as product) {
+  <div class="confirm-backdrop">
+    <section
+      class="confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="status-dialog-title"
+    >
+      <h2 id="status-dialog-title">{{ product.active ? 'Desactivar' : 'Reactivar' }} producto</h2>
+      <p>
+        {{
+          product.active
+            ? 'El producto dejará de estar activo.'
+            : 'El producto volverá a estar activo.'
+        }}
+        ¿Quieres continuar con <strong>{{ product.name }}</strong
+        >?
+      </p>
+      <div>
+        <button
+          class="secondary"
+          type="button"
+          [disabled]="operationPending()"
+          (click)="closeEditor()"
+        >
+          Cancelar
+        </button>
+        <button type="button" [disabled]="operationPending()" (click)="confirmStatusChange()">
+          {{ operationPending() ? 'Guardando…' : 'Confirmar' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

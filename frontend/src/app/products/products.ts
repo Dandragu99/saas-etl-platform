@@ -1,8 +1,10 @@
-import { Component, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { AuthSessionService } from '../auth/auth-session.service';
+import { hasCompanyPermission } from '../auth/company-permissions';
 import { ProductApiService } from './product-api.service';
+import { ProductForm } from './product-form/product-form';
 import {
   Product,
   ProductQuery,
@@ -16,6 +18,7 @@ type ProductsStatus = 'loading' | 'success' | 'error';
 
 @Component({
   selector: 'app-products',
+  imports: [ProductForm],
   templateUrl: './products.html',
   styleUrl: './products.css',
 })
@@ -24,6 +27,7 @@ export class Products implements OnDestroy {
   private readonly api = inject(ProductApiService);
   private readonly sessions = inject(AuthSessionService);
   private loadSubscription: Subscription | null = null;
+  private operationSubscription: Subscription | null = null;
 
   protected readonly status = signal<ProductsStatus>('loading');
   protected readonly products = signal<readonly Product[]>([]);
@@ -37,11 +41,27 @@ export class Products implements OnDestroy {
   protected readonly activeFilter = signal<boolean | undefined>(undefined);
   protected readonly sort = signal<ProductSort>('name');
   protected readonly direction = signal<SortDirection>('asc');
+  protected readonly editedProduct = signal<Product | null | undefined>(undefined);
+  protected readonly statusProduct = signal<Product | null>(null);
+  protected readonly operationPending = signal(false);
+  protected readonly operationMessage = signal<string | null>(null);
+  protected readonly operationError = signal<string | null>(null);
+  protected readonly activeCompanyId = computed(
+    () => this.sessions.session()?.activeCompany?.id ?? null,
+  );
+  protected readonly canWrite = computed(() =>
+    hasCompanyPermission(this.sessions.session()?.activeCompany?.role, 'PRODUCT_WRITE'),
+  );
 
   constructor() {
     effect(() => {
       const companyId = this.sessions.session()?.activeCompany?.id ?? null;
       untracked(() => {
+        this.closeEditor();
+        this.operationSubscription?.unsubscribe();
+        this.operationPending.set(false);
+        this.operationMessage.set(null);
+        this.operationError.set(null);
         this.clearCompanyData();
         if (companyId === null) {
           this.status.set('success');
@@ -54,6 +74,7 @@ export class Products implements OnDestroy {
 
   ngOnDestroy(): void {
     this.loadSubscription?.unsubscribe();
+    this.operationSubscription?.unsubscribe();
   }
 
   protected applyFilters(event: Event): void {
@@ -115,6 +136,72 @@ export class Products implements OnDestroy {
   protected nextPage(): void {
     if (this.currentPage() + 1 >= this.totalPages()) return;
     this.currentPage.update((page) => page + 1);
+    this.reload();
+  }
+
+  protected createProduct(): void {
+    if (this.canWrite()) this.editedProduct.set(null);
+  }
+
+  protected editProduct(product: Product): void {
+    if (this.canWrite()) this.editedProduct.set(product);
+  }
+
+  protected closeEditor(): void {
+    this.editedProduct.set(undefined);
+    this.statusProduct.set(null);
+  }
+
+  protected productSaved(product: Product): void {
+    const wasCreation = this.editedProduct() === null;
+    this.closeEditor();
+    this.operationMessage.set(
+      wasCreation ? 'Producto creado correctamente.' : 'Producto actualizado correctamente.',
+    );
+    this.operationError.set(null);
+    this.reload();
+  }
+
+  protected requestStatusChange(product: Product): void {
+    if (this.canWrite()) this.statusProduct.set(product);
+  }
+
+  protected confirmStatusChange(): void {
+    const product = this.statusProduct();
+    const companyId = this.activeCompanyId();
+    if (product === null || companyId === null || this.operationPending()) return;
+    this.operationPending.set(true);
+    this.operationError.set(null);
+    this.operationMessage.set(null);
+    this.operationSubscription = this.api
+      .changeProductStatus(product.id, {
+        active: !product.active,
+        expectedVersion: product.version,
+      })
+      .subscribe({
+        next: () => {
+          if (this.activeCompanyId() !== companyId) return;
+          this.statusProduct.set(null);
+          this.operationPending.set(false);
+          this.operationMessage.set(
+            product.active
+              ? 'Producto desactivado correctamente.'
+              : 'Producto reactivado correctamente.',
+          );
+          this.reload();
+        },
+        error: (error: unknown) => {
+          if (this.activeCompanyId() !== companyId) return;
+          this.statusProduct.set(null);
+          this.operationPending.set(false);
+          this.operationError.set(this.operationErrorMessage(error));
+        },
+      });
+  }
+
+  protected reloadAfterConflict(): void {
+    this.statusProduct.set(null);
+    this.operationError.set(null);
     this.reload();
   }
 
@@ -196,5 +283,13 @@ export class Products implements OnDestroy {
     return error instanceof ProductRequestError
       ? error.message
       : 'No se pudieron cargar los productos. Inténtalo de nuevo.';
+  }
+
+  private operationErrorMessage(error: unknown): string {
+    if (error instanceof ProductRequestError && error.code === 'PRODUCT_VERSION_CONFLICT') {
+      return 'El producto ha cambiado. Recarga el catálogo antes de volver a intentarlo.';
+    }
+    if (error instanceof ProductRequestError) return error.message;
+    return 'No se pudo cambiar el estado del producto. Inténtalo de nuevo.';
   }
 }

@@ -1,8 +1,17 @@
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { catchError, Observable, throwError } from 'rxjs';
+import { catchError, Observable, switchMap, throwError } from 'rxjs';
 
-import { Product, ProductPage, ProductQuery, ProductRequestError } from './product.models';
+import { ApiErrorResponse } from '../auth/auth.models';
+import {
+  ChangeProductStatusRequest,
+  CreateProductRequest,
+  Product,
+  ProductPage,
+  ProductQuery,
+  ProductRequestError,
+  UpdateProductRequest,
+} from './product.models';
 
 @Injectable({ providedIn: 'root' })
 export class ProductApiService {
@@ -33,6 +42,29 @@ export class ProductApiService {
       .pipe(catchError((error: unknown) => throwError(() => this.toRequestError(error))));
   }
 
+  createProduct(request: CreateProductRequest): Observable<Product> {
+    return this.withCsrf(this.http.post<Product>('/api/products', request));
+  }
+
+  updateProduct(id: string, request: UpdateProductRequest): Observable<Product> {
+    return this.withCsrf(
+      this.http.put<Product>(`/api/products/${encodeURIComponent(id)}`, request),
+    );
+  }
+
+  changeProductStatus(id: string, request: ChangeProductStatusRequest): Observable<Product> {
+    return this.withCsrf(
+      this.http.patch<Product>(`/api/products/${encodeURIComponent(id)}/status`, request),
+    );
+  }
+
+  private withCsrf<T>(request: Observable<T>): Observable<T> {
+    return this.http.get('/api/auth/csrf').pipe(
+      switchMap(() => request),
+      catchError((error: unknown) => throwError(() => this.toRequestError(error))),
+    );
+  }
+
   private addTextFilter(params: HttpParams, name: string, value: string | undefined): HttpParams {
     const normalized = value?.trim();
     return normalized ? params.set(name, normalized) : params;
@@ -48,8 +80,31 @@ export class ProductApiService {
       );
     }
     if (error instanceof HttpErrorResponse && error.status === 403) {
-      return new ProductRequestError('No tienes permiso para consultar los productos.');
+      return new ProductRequestError(
+        'No tienes permiso para realizar esta operación.',
+        'COMPANY_PERMISSION_DENIED',
+        403,
+      );
     }
-    return new ProductRequestError('No se pudieron cargar los productos. Inténtalo de nuevo.');
+    if (error instanceof HttpErrorResponse && this.isApiError(error.error)) {
+      return new ProductRequestError(error.error.message, error.error.code, error.error.status);
+    }
+    return new ProductRequestError(
+      'No se pudo completar la operación. Inténtalo de nuevo.',
+      'PRODUCT_REQUEST_FAILED',
+      error instanceof HttpErrorResponse ? error.status : 500,
+    );
+  }
+
+  private isApiError(value: unknown): value is ApiErrorResponse {
+    if (typeof value !== 'object' || value === null) return false;
+    const record = value as Record<string, unknown>;
+    return (
+      typeof record['code'] === 'string' &&
+      typeof record['message'] === 'string' &&
+      typeof record['status'] === 'number' &&
+      typeof record['path'] === 'string' &&
+      typeof record['timestamp'] === 'string'
+    );
   }
 }

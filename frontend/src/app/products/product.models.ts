@@ -37,8 +37,32 @@ export interface ProductQuery {
   readonly direction: SortDirection;
 }
 
+export interface ProductValues {
+  readonly sku: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly category: string;
+  readonly price: string;
+  readonly unitOfMeasure: UnitOfMeasure;
+}
+
+export type CreateProductRequest = ProductValues;
+
+export interface UpdateProductRequest extends ProductValues {
+  readonly expectedVersion: number;
+}
+
+export interface ChangeProductStatusRequest {
+  readonly active: boolean;
+  readonly expectedVersion: number;
+}
+
 export class ProductRequestError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly code = 'PRODUCT_REQUEST_FAILED',
+    readonly status = 0,
+  ) {
     super(message);
     this.name = 'ProductRequestError';
   }

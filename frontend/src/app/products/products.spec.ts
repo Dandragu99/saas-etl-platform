@@ -1,8 +1,9 @@
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 
 import { AuthSessionService } from '../auth/auth-session.service';
+import { AuthSession } from '../auth/auth.models';
 import { ProductApiService } from './product-api.service';
 import { Product, ProductPage, ProductQuery, ProductRequestError } from './product.models';
 import { Products } from './products';
@@ -38,17 +39,18 @@ class ProductApiStub {
   getProducts(_query: ProductQuery): Observable<ProductPage> {
     return of(page());
   }
+
+  changeProductStatus(
+    _id: string,
+    _request: { active: boolean; expectedVersion: number },
+  ): Observable<Product> {
+    return of({ ...PRODUCT, active: false, version: PRODUCT.version + 1 });
+  }
 }
 
 describe('Products', () => {
   let api: ProductApiStub;
-  let sessionState: ReturnType<
-    typeof signal<{
-      userId: string;
-      email: string;
-      activeCompany: { id: string; name: string; defaultCurrency: string; role: 'OWNER' };
-    }>
-  >;
+  let sessionState: WritableSignal<AuthSession>;
 
   beforeEach(async () => {
     api = new ProductApiStub();
@@ -166,7 +168,7 @@ describe('Products', () => {
 
     sessionState.set({
       ...sessionState(),
-      activeCompany: { ...sessionState().activeCompany, id: 'company-2', name: 'Other' },
+      activeCompany: { ...sessionState().activeCompany!, id: 'company-2', name: 'Other' },
     });
     fixture.detectChanges();
 
@@ -175,6 +177,75 @@ describe('Products', () => {
     expect(fixture.nativeElement.textContent).toContain('Cargando productos');
     secondCompany.next(page([]));
     secondCompany.complete();
+  });
+
+  it('should show write actions only to owner and admin', async () => {
+    const ownerFixture = createComponent();
+    await ownerFixture.whenStable();
+    expect(ownerFixture.nativeElement.textContent).toContain('Nuevo producto');
+    expect(ownerFixture.nativeElement.textContent).toContain('Editar');
+    ownerFixture.destroy();
+
+    sessionState.set({
+      ...sessionState(),
+      activeCompany: { ...sessionState().activeCompany!, role: 'VIEWER' },
+    });
+    const viewerFixture = createComponent();
+    await viewerFixture.whenStable();
+    expect(viewerFixture.nativeElement.textContent).not.toContain('Nuevo producto');
+    expect(viewerFixture.nativeElement.textContent).not.toContain('Editar');
+  });
+
+  it('should change status with expectedVersion and preserve the current query', async () => {
+    const changeStatus = vi.spyOn(api, 'changeProductStatus');
+    const getProducts = vi.spyOn(api, 'getProducts');
+    const fixture = createComponent();
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.status-action')?.click();
+    fixture.detectChanges();
+    expect(element.textContent).toContain('Desactivar producto');
+    element.querySelector<HTMLButtonElement>('.confirm-dialog button:last-child')?.click();
+    await fixture.whenStable();
+
+    expect(changeStatus).toHaveBeenCalledWith(PRODUCT.id, {
+      active: false,
+      expectedVersion: PRODUCT.version,
+    });
+    expect(getProducts).toHaveBeenCalledTimes(2);
+    expect(element.textContent).toContain('Producto desactivado correctamente.');
+  });
+
+  it('should offer a catalog reload after a status version conflict', async () => {
+    vi.spyOn(api, 'changeProductStatus').mockReturnValue(
+      throwError(() => new ProductRequestError('Conflict', 'PRODUCT_VERSION_CONFLICT', 409)),
+    );
+    const fixture = createComponent();
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.status-action')?.click();
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.confirm-dialog button:last-child')?.click();
+    await fixture.whenStable();
+
+    expect(element.textContent).toContain('El producto ha cambiado');
+    expect(element.textContent).toContain('Recargar catálogo');
+  });
+
+  it('should close an open editor when the active company changes', async () => {
+    const fixture = createComponent();
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.row-actions .link-button')?.click();
+    fixture.detectChanges();
+    expect(element.querySelector('app-product-form')).not.toBeNull();
+
+    sessionState.set({
+      ...sessionState(),
+      activeCompany: { ...sessionState().activeCompany!, id: 'company-2' },
+    });
+    fixture.detectChanges();
+    expect(element.querySelector('app-product-form')).toBeNull();
   });
 });
 

@@ -1,0 +1,158 @@
+:host {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+}
+.dialog-backdrop {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgb(15 23 42 / 55%);
+}
+.dialog {
+  width: min(46rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 24px 70px rgb(15 23 42 / 30%);
+}
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e9f0;
+}
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: #2563eb;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+.close {
+  padding: 0.2rem 0.55rem;
+  background: transparent;
+  color: #64748b;
+  font-size: 1.5rem;
+}
+form {
+  padding: 1.5rem;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+label {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  color: #344054;
+  font-size: 0.83rem;
+  font-weight: 700;
+}
+em {
+  color: #be123c;
+  font-style: normal;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #9aa5b5;
+  border-radius: 0.6rem;
+  background: white;
+  color: #172033;
+  font: inherit;
+}
+textarea {
+  resize: vertical;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgb(37 99 235 / 28%);
+  outline-offset: 2px;
+}
+small {
+  color: #be123c;
+  font-weight: 500;
+}
+.description {
+  grid-column: 1 / -1;
+}
+.form-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.85rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.65rem;
+  background: #fff1f2;
+  color: #9f1239;
+}
+footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e9f0;
+}
+button {
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: #2563eb;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+button.secondary {
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+}
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  .dialog-backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+  .dialog {
+    max-height: 94vh;
+    border-radius: 1rem 1rem 0 0;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .description {
+    grid-column: auto;
+  }
+  .form-error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  footer button {
+    flex: 1;
+  }
+}

@@ -1,0 +1,92 @@
+<div class="dialog-backdrop" role="presentation">
+  <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="product-form-title">
+    <header>
+      <div>
+        <p class="eyebrow">{{ product() ? 'Editar catálogo' : 'Alta de producto' }}</p>
+        <h2 id="product-form-title">{{ product() ? 'Editar producto' : 'Nuevo producto' }}</h2>
+      </div>
+      <button
+        class="close"
+        type="button"
+        aria-label="Cerrar formulario"
+        [disabled]="submitting()"
+        (click)="cancel()"
+      >
+        ×
+      </button>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-grid">
+        <label>
+          <span>SKU <em aria-hidden="true">*</em></span>
+          <input formControlName="sku" maxlength="80" autocomplete="off" />
+          @if (form.controls.sku.touched && form.controls.sku.invalid) {
+            <small>Introduce un SKU de hasta 80 caracteres.</small>
+          }
+        </label>
+        <label>
+          <span>Nombre <em aria-hidden="true">*</em></span>
+          <input formControlName="name" maxlength="160" autocomplete="off" />
+          @if (form.controls.name.touched && form.controls.name.invalid) {
+            <small>Introduce un nombre de hasta 160 caracteres.</small>
+          }
+        </label>
+        <label>
+          <span>Categoría <em aria-hidden="true">*</em></span>
+          <input formControlName="category" maxlength="100" autocomplete="off" />
+          @if (form.controls.category.touched && form.controls.category.invalid) {
+            <small>Introduce una categoría de hasta 100 caracteres.</small>
+          }
+        </label>
+        <label>
+          <span>Precio <em aria-hidden="true">*</em></span>
+          <input
+            formControlName="price"
+            inputmode="decimal"
+            placeholder="0.0000"
+            autocomplete="off"
+          />
+          @if (form.controls.price.touched && form.controls.price.invalid) {
+            <small>Usa un importe no negativo, con hasta 15 enteros y 4 decimales.</small>
+          }
+        </label>
+        <label>
+          <span>Unidad de medida <em aria-hidden="true">*</em></span>
+          <select formControlName="unitOfMeasure">
+            @for (unit of units; track unit.value) {
+              <option [value]="unit.value">{{ unit.label }}</option>
+            }
+          </select>
+        </label>
+        <label class="description">
+          <span>Descripción</span>
+          <textarea formControlName="description" maxlength="2000" rows="4"></textarea>
+          @if (form.controls.description.touched && form.controls.description.invalid) {
+            <small>La descripción no puede superar 2000 caracteres.</small>
+          }
+        </label>
+      </div>
+
+      @if (errorMessage(); as message) {
+        <div class="form-error" role="alert">
+          <span>{{ message }}</span>
+          @if (staleVersion()) {
+            <button type="button" [disabled]="submitting()" (click)="reloadProduct()">
+              Recargar datos
+            </button>
+          }
+        </div>
+      }
+
+      <footer>
+        <button class="secondary" type="button" [disabled]="submitting()" (click)="cancel()">
+          Cancelar
+        </button>
+        <button type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Guardando…' : product() ? 'Guardar cambios' : 'Crear producto' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>

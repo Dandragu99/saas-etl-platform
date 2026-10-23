@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -24,6 +25,7 @@ import com.dandragu.saasetl.company.application.CompanyPermissionDeniedException
 import com.dandragu.saasetl.identity.api.InvalidRegistrationRequestException;
 import com.dandragu.saasetl.identity.application.DuplicateUserEmailException;
 import com.dandragu.saasetl.product.api.InvalidProductQueryException;
+import com.dandragu.saasetl.product.api.InvalidProductRequestException;
 import com.dandragu.saasetl.product.application.DuplicateProductSkuException;
 import com.dandragu.saasetl.product.application.ProductCompanyUnavailableException;
 import com.dandragu.saasetl.product.application.ProductNotFoundException;
@@ -32,7 +34,7 @@ import com.dandragu.saasetl.product.application.ProductVersionConflictException;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-	@ExceptionHandler({MethodArgumentNotValidException.class, InvalidRegistrationRequestException.class})
+	@ExceptionHandler(InvalidRegistrationRequestException.class)
 	public ResponseEntity<ApiErrorResponse> handleInvalidRegistration(
 			Exception exception,
 			HttpServletRequest request) {
@@ -40,6 +42,24 @@ public class ApiExceptionHandler {
 				new ErrorDetails(
 						"INVALID_REGISTRATION",
 						"Los datos de registro no son válidos.",
+						HttpStatus.BAD_REQUEST),
+				request);
+	}
+
+	@ExceptionHandler({
+			MethodArgumentNotValidException.class,
+			HttpMessageNotReadableException.class,
+			InvalidProductRequestException.class})
+	public ResponseEntity<ApiErrorResponse> handleInvalidRequest(
+			Exception exception,
+			HttpServletRequest request) {
+		boolean productRequest = request.getRequestURI().startsWith("/api/products");
+		return createResponse(
+				new ErrorDetails(
+						productRequest ? "INVALID_PRODUCT_REQUEST" : "INVALID_REGISTRATION",
+						productRequest
+								? "Los datos del producto no son válidos."
+								: "Los datos de registro no son válidos.",
 						HttpStatus.BAD_REQUEST),
 				request);
 	}

@@ -3,6 +3,7 @@ package com.dandragu.saasetl.identity.infrastructure.security;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -516,6 +517,146 @@ class PostgresSecurityIntegrationTest {
 	}
 
 	@Test
+	void shouldCreateUpdateDeactivateAndReactivateAProduct() throws Exception {
+		RegistrationResult registration = registerUser();
+		AuthenticatedState authenticated = login();
+
+		mockMvc.perform(post("/api/products")
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(productJson("SKU-1", "Product", "10.2500")))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.currency").value("EUR"))
+				.andExpect(jsonPath("$.price").value("10.2500"))
+				.andExpect(jsonPath("$.version").value(0));
+		UUID productId = jdbcTemplate.queryForObject(
+				"SELECT id FROM products WHERE company_id = ? AND normalized_sku = 'SKU-1'",
+				UUID.class,
+				registration.companyId());
+
+		mockMvc.perform(post("/api/products")
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(productJson(" sku-1 ", "Duplicate", "1.0000")))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("PRODUCT_SKU_ALREADY_EXISTS"));
+
+		mockMvc.perform(post("/api/products")
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(productJson("BAD-PRICE", "Invalid", "-1.00")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PRODUCT_REQUEST"));
+
+		mockMvc.perform(put("/api/products/" + productId)
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(updateProductJson(0, "SKU-2", "Updated product", "20.5000")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("Updated product"))
+				.andExpect(jsonPath("$.version").value(1));
+
+		mockMvc.perform(put("/api/products/" + productId)
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(updateProductJson(0, "SKU-3", "Stale", "30.0000")))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("PRODUCT_VERSION_CONFLICT"));
+
+		mockMvc.perform(patch("/api/products/" + productId + "/status")
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"active\":false,\"expectedVersion\":1}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.active").value(false))
+				.andExpect(jsonPath("$.version").value(2));
+
+		mockMvc.perform(patch("/api/products/" + productId + "/status")
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"active\":true,\"expectedVersion\":2}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.active").value(true))
+				.andExpect(jsonPath("$.version").value(3));
+	}
+
+	@Test
+	void shouldEnforceProductWriteRolesAndCompanyIsolation() throws Exception {
+		RegistrationResult registration = registerUser();
+		UUID adminCompany = addCompanyMembership(registration, "Admin Company", "ADMIN");
+		UUID inventoryCompany = addCompanyMembership(
+				registration, "Inventory Company", "INVENTORY_MANAGER");
+		UUID viewerCompany = addCompanyMembership(registration, "Viewer Company", "VIEWER");
+		UUID ownerProduct = addProduct(registration.companyId(), "OWNER-1", "Owner product");
+		AuthenticatedState authenticated = login();
+
+		selectCompany(authenticated, adminCompany).andExpect(status().isOk());
+		mockMvc.perform(post("/api/products")
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(productJson("ADMIN-1", "Admin product", "5.0000")))
+				.andExpect(status().isCreated());
+		mockMvc.perform(put("/api/products/" + ownerProduct)
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.header("X-XSRF-TOKEN", authenticated.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(updateProductJson(0, "OWNER-2", "Foreign update", "5.0000")))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
+
+		for (UUID readOnlyCompany : java.util.List.of(inventoryCompany, viewerCompany)) {
+			selectCompany(authenticated, readOnlyCompany).andExpect(status().isOk());
+			mockMvc.perform(post("/api/products")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf())
+						.header("X-XSRF-TOKEN", authenticated.token())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(productJson("DENIED-1", "Denied", "1.0000")))
+					.andExpect(status().isForbidden())
+					.andExpect(jsonPath("$.code").value("COMPANY_PERMISSION_DENIED"));
+		}
+	}
+
+	@Test
+	void shouldRejectProductWritesWithoutAuthenticationOrValidCsrf() throws Exception {
+		CsrfState anonymous = getCsrf(null);
+		mockMvc.perform(post("/api/products")
+					.secure(true)
+					.cookie(anonymous.session(), anonymous.csrf())
+					.header("X-XSRF-TOKEN", anonymous.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(productJson("SKU-1", "Product", "1.0000")))
+				.andExpect(status().isUnauthorized());
+
+		registerUser();
+		AuthenticatedState authenticated = login();
+		mockMvc.perform(post("/api/products")
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(productJson("SKU-1", "Product", "1.0000")))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+	}
+
+	@Test
 	void shouldTreatExpiredJdbcSessionAsUnauthenticated() throws Exception {
 		registerUser();
 		AuthenticatedState authenticated = login();
@@ -606,6 +747,20 @@ class PostgresSecurityIntegrationTest {
 				 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 				""", productId, companyId, sku, sku.toUpperCase(java.util.Locale.ROOT), name);
 		return productId;
+	}
+
+	private static String productJson(String sku, String name, String price) {
+		return """
+				{"sku":"%s","name":"%s","description":null,"category":"Test",
+				 "price":"%s","unitOfMeasure":"UNIT"}
+				""".formatted(sku, name, price);
+	}
+
+	private static String updateProductJson(long version, String sku, String name, String price) {
+		return """
+				{"expectedVersion":%d,"sku":"%s","name":"%s","description":null,
+				 "category":"Test","price":"%s","unitOfMeasure":"UNIT"}
+				""".formatted(version, sku, name, price);
 	}
 
 	private CsrfState getCsrf(Cookie session) throws Exception {

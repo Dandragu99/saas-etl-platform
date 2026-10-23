@@ -31,6 +31,60 @@ Un producto inexistente y uno perteneciente a otra empresa producen la misma res
 el código `PRODUCT_NOT_FOUND`. Una consulta, paginación u ordenación inválida produce `400` con el
 código `INVALID_PRODUCT_QUERY`.
 
+### Crear un producto
+
+```http
+POST /api/products
+Content-Type: application/json
+X-XSRF-TOKEN: <token>
+```
+
+```json
+{
+  "sku": "CHAIR-1",
+  "name": "Chair",
+  "description": "Optional description",
+  "category": "Furniture",
+  "price": "12.3400",
+  "unitOfMeasure": "UNIT"
+}
+```
+
+Devuelve `201 Created`, el producto creado y su URL en `Location`. La empresa y la moneda no se
+aceptan desde el cliente: proceden de la empresa activa validada. El precio es una cadena decimal
+no negativa con hasta 15 dígitos enteros y 4 decimales.
+
+### Editar un producto
+
+```http
+PUT /api/products/{id}
+Content-Type: application/json
+X-XSRF-TOKEN: <token>
+```
+
+El cuerpo contiene los mismos campos editables de la creación y `expectedVersion`. Devuelve `200`.
+Una versión obsoleta devuelve `409 PRODUCT_VERSION_CONFLICT`.
+
+### Activar o desactivar un producto
+
+```http
+PATCH /api/products/{id}/status
+Content-Type: application/json
+X-XSRF-TOKEN: <token>
+```
+
+```json
+{
+  "active": false,
+  "expectedVersion": 1
+}
+```
+
+Las tres operaciones de escritura requieren `PRODUCT_WRITE` y un token CSRF válido. Un SKU
+duplicado dentro de la empresa activa devuelve `409 PRODUCT_SKU_ALREADY_EXISTS`. Un producto
+inexistente o perteneciente a otra empresa devuelve `404 PRODUCT_NOT_FOUND`. Los datos inválidos
+devuelven `400 INVALID_PRODUCT_REQUEST`.
+
 ## 1. Propósito y alcance
 
 Este documento define los contratos HTTP para obtener la vista previa de archivos CSV y la vista previa resultante de eliminar una columna.

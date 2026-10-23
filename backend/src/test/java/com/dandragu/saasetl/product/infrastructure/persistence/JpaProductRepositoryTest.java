@@ -17,6 +17,9 @@ import com.dandragu.saasetl.company.domain.Company;
 import com.dandragu.saasetl.company.domain.CurrencyCode;
 import com.dandragu.saasetl.product.application.DuplicateProductSkuException;
 import com.dandragu.saasetl.product.application.ProductVersionConflictException;
+import com.dandragu.saasetl.product.application.ProductQuery;
+import com.dandragu.saasetl.product.application.ProductSort;
+import com.dandragu.saasetl.product.application.ProductSortDirection;
 import com.dandragu.saasetl.product.domain.Product;
 import com.dandragu.saasetl.product.domain.ProductId;
 import com.dandragu.saasetl.product.domain.ProductSku;
@@ -77,15 +80,45 @@ class JpaProductRepositoryTest {
 				.isInstanceOf(ProductVersionConflictException.class);
 	}
 
+	@Test
+	void shouldSearchOnlyInsideTheRequestedCompanyWithFiltersAndPagination() {
+		Company firstCompany = company("First", "EUR");
+		Company secondCompany = company("Second", "USD");
+		productRepository.save(product(firstCompany, "A-1", "Alpha chair", "Furniture", true));
+		productRepository.save(product(firstCompany, "B-2", "Beta chair", "Furniture", false));
+		productRepository.save(product(firstCompany, "C-3", "Cable", "Electronics", true));
+		productRepository.save(product(secondCompany, "A-1", "Foreign chair", "Furniture", true));
+
+		var firstPage = productRepository.search(firstCompany.id(), new ProductQuery(
+				"chair", null, "furn", null, 0, 1, ProductSort.NAME, ProductSortDirection.DESC));
+		var active = productRepository.search(firstCompany.id(), new ProductQuery(
+				null, "c-3", null, true, 0, 10, ProductSort.SKU, ProductSortDirection.ASC));
+
+		assertThat(firstPage.totalElements()).isEqualTo(2);
+		assertThat(firstPage.totalPages()).isEqualTo(2);
+		assertThat(firstPage.content()).extracting(Product::name).containsExactly("Beta chair");
+		assertThat(active.content()).extracting(Product::name).containsExactly("Cable");
+	}
+
 	private Company company(String name, String currency) {
 		Company company = Company.create(UUID.randomUUID(), name, new CurrencyCode(currency), NOW);
 		return companyRepository.save(company);
 	}
 
 	private Product product(Company company, String sku) {
-		return Product.create(
-				new ProductId(UUID.randomUUID()), company.id(), new ProductSku(sku), "Product", null,
-				"Category", new BigDecimal("10.0000"), company.defaultCurrency(),
+		return product(company, sku, "Product", "Category", true);
+	}
+
+	private Product product(
+			Company company,
+			String sku,
+			String name,
+			String category,
+			boolean active) {
+		Product product = Product.create(
+				new ProductId(UUID.randomUUID()), company.id(), new ProductSku(sku), name, null,
+				category, new BigDecimal("10.0000"), company.defaultCurrency(),
 				UnitOfMeasure.UNIT, NOW);
+		return active ? product : product.changeActive(false, NOW.plusSeconds(1));
 	}
 }

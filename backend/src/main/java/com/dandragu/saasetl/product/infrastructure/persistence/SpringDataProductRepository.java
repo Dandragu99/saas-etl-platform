@@ -4,8 +4,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-interface SpringDataProductRepository extends JpaRepository<ProductEntity, UUID> {
+interface SpringDataProductRepository extends JpaRepository<ProductEntity, UUID>,
+		JpaSpecificationExecutor<ProductEntity> {
 
 	Optional<ProductEntity> findByIdAndCompanyId(UUID id, UUID companyId);
 

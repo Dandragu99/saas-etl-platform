@@ -466,6 +466,8 @@ class PostgresSecurityIntegrationTest {
 				.andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
 		mockMvc.perform(get("/api/etl/executions").secure(true))
 				.andExpect(status().isUnauthorized());
+		mockMvc.perform(get("/api/products").secure(true))
+				.andExpect(status().isUnauthorized());
 
 		registerUser();
 		AuthenticatedState authenticated = login();
@@ -474,6 +476,43 @@ class PostgresSecurityIntegrationTest {
 						.cookie(authenticated.session(), authenticated.csrf()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$").isEmpty());
+	}
+
+	@Test
+	void shouldReadOnlyProductsForTheSelectedCompanyWithEveryCompanyRole() throws Exception {
+		RegistrationResult registration = registerUser();
+		UUID adminCompany = addCompanyMembership(registration, "Admin Company", "ADMIN");
+		UUID inventoryCompany = addCompanyMembership(
+				registration, "Inventory Company", "INVENTORY_MANAGER");
+		UUID viewerCompany = addCompanyMembership(registration, "Viewer Company", "VIEWER");
+		UUID ownerProduct = addProduct(registration.companyId(), "OWNER-1", "Owner product");
+		UUID adminProduct = addProduct(adminCompany, "ADMIN-1", "Admin product");
+		addProduct(inventoryCompany, "INVENTORY-1", "Inventory product");
+		addProduct(viewerCompany, "VIEWER-1", "Viewer product");
+		AuthenticatedState authenticated = login();
+
+		for (UUID companyId : java.util.List.of(
+				registration.companyId(), adminCompany, inventoryCompany, viewerCompany)) {
+			selectCompany(authenticated, companyId).andExpect(status().isOk());
+			mockMvc.perform(get("/api/products")
+						.secure(true)
+						.cookie(authenticated.session(), authenticated.csrf()))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.content.length()").value(1));
+		}
+
+		selectCompany(authenticated, registration.companyId()).andExpect(status().isOk());
+		mockMvc.perform(get("/api/products/" + ownerProduct)
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("Owner product"))
+				.andExpect(jsonPath("$.price").value("10.0000"));
+		mockMvc.perform(get("/api/products/" + adminProduct)
+					.secure(true)
+					.cookie(authenticated.session(), authenticated.csrf()))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
 	}
 
 	@Test
@@ -555,6 +594,18 @@ class PostgresSecurityIntegrationTest {
 				VALUES (?, ?, 'EUR', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 				""", companyId, name);
 		return companyId;
+	}
+
+	private UUID addProduct(UUID companyId, String sku, String name) {
+		UUID productId = UUID.randomUUID();
+		jdbcTemplate.update("""
+				INSERT INTO products
+				(id, company_id, sku, normalized_sku, name, description, category, price,
+				 currency, unit_of_measure, active, version, created_at, updated_at)
+				VALUES (?, ?, ?, ?, ?, NULL, 'Test', 10.0000, 'EUR', 'UNIT', TRUE, 0,
+				 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""", productId, companyId, sku, sku.toUpperCase(java.util.Locale.ROOT), name);
+		return productId;
 	}
 
 	private CsrfState getCsrf(Cookie session) throws Exception {

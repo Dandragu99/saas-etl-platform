@@ -6,7 +6,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.dandragu.saasetl.company.application.CompanyContext;
+import com.dandragu.saasetl.company.application.CompanyAuthorizationService;
+import com.dandragu.saasetl.company.application.CompanyPermission;
 import com.dandragu.saasetl.company.application.CompanyRepository;
 import com.dandragu.saasetl.company.domain.Company;
 import com.dandragu.saasetl.company.domain.CompanyStatus;
@@ -19,20 +20,20 @@ public class ProductService {
 
 	private final ProductRepository productRepository;
 	private final CompanyRepository companyRepository;
-	private final CompanyContext companyContext;
+	private final CompanyAuthorizationService authorizationService;
 
 	public ProductService(
 			ProductRepository productRepository,
 			CompanyRepository companyRepository,
-			CompanyContext companyContext) {
+			CompanyAuthorizationService authorizationService) {
 		this.productRepository = productRepository;
 		this.companyRepository = companyRepository;
-		this.companyContext = companyContext;
+		this.authorizationService = authorizationService;
 	}
 
 	@Transactional
 	public Product create(CreateProductCommand command) {
-		Company company = requireActiveCompany();
+		Company company = requireActiveCompany(CompanyPermission.PRODUCT_WRITE);
 		ProductSku sku = new ProductSku(command.sku());
 		requireUniqueSku(company.id(), sku, null);
 
@@ -52,14 +53,19 @@ public class ProductService {
 
 	@Transactional(readOnly = true)
 	public Product findById(ProductId productId) {
-		UUID companyId = companyContext.requireCompanyId();
+		UUID companyId = requireCompanyId(CompanyPermission.PRODUCT_READ);
 		return productRepository.findById(companyId, productId)
 				.orElseThrow(ProductNotFoundException::new);
 	}
 
+	@Transactional(readOnly = true)
+	public ProductPage search(ProductQuery query) {
+		return productRepository.search(requireCompanyId(CompanyPermission.PRODUCT_READ), query);
+	}
+
 	@Transactional
 	public Product update(UpdateProductCommand command) {
-		UUID companyId = requireActiveCompany().id();
+		UUID companyId = requireActiveCompany(CompanyPermission.PRODUCT_WRITE).id();
 		Product current = requireProduct(companyId, command.productId());
 		requireExpectedVersion(current, command.expectedVersion());
 		ProductSku sku = new ProductSku(command.sku());
@@ -86,7 +92,7 @@ public class ProductService {
 	}
 
 	private Product changeActive(ProductId productId, long expectedVersion, boolean active) {
-		UUID companyId = requireActiveCompany().id();
+		UUID companyId = requireActiveCompany(CompanyPermission.PRODUCT_WRITE).id();
 		Product current = requireProduct(companyId, productId);
 		requireExpectedVersion(current, expectedVersion);
 		if (current.active() == active) {
@@ -95,14 +101,18 @@ public class ProductService {
 		return productRepository.save(current.changeActive(active, Instant.now()));
 	}
 
-	private Company requireActiveCompany() {
-		UUID companyId = companyContext.requireCompanyId();
+	private Company requireActiveCompany(CompanyPermission permission) {
+		UUID companyId = requireCompanyId(permission);
 		Company company = companyRepository.findById(companyId)
 				.orElseThrow(ProductCompanyUnavailableException::new);
 		if (company.status() != CompanyStatus.ACTIVE) {
 			throw new ProductCompanyUnavailableException();
 		}
 		return company;
+	}
+
+	private UUID requireCompanyId(CompanyPermission permission) {
+		return authorizationService.require(permission).company().id();
 	}
 
 	private Product requireProduct(UUID companyId, ProductId productId) {

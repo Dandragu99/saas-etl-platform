@@ -1,5 +1,36 @@
 # API Contract
 
+## Catálogo de productos
+
+Los endpoints de producto requieren una sesión autenticada y una empresa activa. La empresa se
+obtiene exclusivamente de la sesión validada; nunca se acepta un `companyId` en la petición.
+
+### Listar productos
+
+```http
+GET /api/products?name=chair&sku=CH&category=furniture&active=true&page=0&size=20&sort=name&direction=asc
+```
+
+Todos los parámetros son opcionales. `page` empieza en cero, `size` debe estar entre 1 y 100 y los
+filtros de texto buscan fragmentos literales sin distinguir mayúsculas. Los valores admitidos para
+`sort` son `name`, `sku`, `category`, `price`, `created_at` y `updated_at`; `direction` admite `asc`
+o `desc`. La ordenación siempre añade el identificador como criterio estable de desempate.
+
+La respuesta contiene `content`, `totalElements`, `totalPages`, `page` y `size`. Cada producto
+incluye `id`, `sku`, `name`, `description`, `category`, `price`, `currency`, `unitOfMeasure`,
+`active`, `version`, `createdAt` y `updatedAt`. `price` se representa como una cadena decimal y la
+respuesta nunca expone `companyId`.
+
+### Consultar un producto
+
+```http
+GET /api/products/{id}
+```
+
+Un producto inexistente y uno perteneciente a otra empresa producen la misma respuesta `404` con
+el código `PRODUCT_NOT_FOUND`. Una consulta, paginación u ordenación inválida produce `400` con el
+código `INVALID_PRODUCT_QUERY`.
+
 ## 1. Propósito y alcance
 
 Este documento define los contratos HTTP para obtener la vista previa de archivos CSV y la vista previa resultante de eliminar una columna.

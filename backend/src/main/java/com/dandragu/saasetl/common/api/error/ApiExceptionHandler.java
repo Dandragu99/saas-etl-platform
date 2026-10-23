@@ -23,6 +23,11 @@ import com.dandragu.saasetl.company.application.CompanyContextUnavailableExcepti
 import com.dandragu.saasetl.company.application.CompanyPermissionDeniedException;
 import com.dandragu.saasetl.identity.api.InvalidRegistrationRequestException;
 import com.dandragu.saasetl.identity.application.DuplicateUserEmailException;
+import com.dandragu.saasetl.product.api.InvalidProductQueryException;
+import com.dandragu.saasetl.product.application.DuplicateProductSkuException;
+import com.dandragu.saasetl.product.application.ProductCompanyUnavailableException;
+import com.dandragu.saasetl.product.application.ProductNotFoundException;
+import com.dandragu.saasetl.product.application.ProductVersionConflictException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -36,6 +41,55 @@ public class ApiExceptionHandler {
 						"INVALID_REGISTRATION",
 						"Los datos de registro no son válidos.",
 						HttpStatus.BAD_REQUEST),
+				request);
+	}
+
+	@ExceptionHandler(InvalidProductQueryException.class)
+	public ResponseEntity<ApiErrorResponse> handleInvalidProductQuery(
+			InvalidProductQueryException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"INVALID_PRODUCT_QUERY",
+						"Los filtros, la ordenación o la paginación de productos no son válidos.",
+						HttpStatus.BAD_REQUEST),
+				request);
+	}
+
+	@ExceptionHandler(ProductNotFoundException.class)
+	public ResponseEntity<ApiErrorResponse> handleProductNotFound(
+			ProductNotFoundException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"PRODUCT_NOT_FOUND",
+						"El producto no existe.",
+						HttpStatus.NOT_FOUND),
+				request);
+	}
+
+	@ExceptionHandler({DuplicateProductSkuException.class, ProductVersionConflictException.class})
+	public ResponseEntity<ApiErrorResponse> handleProductConflict(
+			RuntimeException exception,
+			HttpServletRequest request) {
+		String code = exception instanceof DuplicateProductSkuException
+				? "PRODUCT_SKU_ALREADY_EXISTS"
+				: "PRODUCT_VERSION_CONFLICT";
+		String message = exception instanceof DuplicateProductSkuException
+				? "Ya existe un producto con ese SKU en la empresa activa."
+				: "El producto ha sido modificado por otra operación.";
+		return createResponse(new ErrorDetails(code, message, HttpStatus.CONFLICT), request);
+	}
+
+	@ExceptionHandler(ProductCompanyUnavailableException.class)
+	public ResponseEntity<ApiErrorResponse> handleProductCompanyUnavailable(
+			ProductCompanyUnavailableException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"PRODUCT_COMPANY_UNAVAILABLE",
+						"La empresa activa no está disponible para operar con productos.",
+						HttpStatus.CONFLICT),
 				request);
 	}
 

@@ -38,7 +38,7 @@ export class MainLayout implements OnInit {
       available: true,
     },
     { label: 'Productos', route: '/productos', icon: 'product', available: true },
-    { label: 'Inventario', route: '/inventario', icon: 'inventory', available: false },
+    { label: 'Inventario', route: '/inventario', icon: 'inventory', available: true },
     { label: 'Clientes', route: '/clientes', icon: 'clients', available: false },
     { label: 'Ventas', route: '/ventas', icon: 'sales', available: false },
     { label: 'Gastos', route: '/gastos', icon: 'expenses', available: false },

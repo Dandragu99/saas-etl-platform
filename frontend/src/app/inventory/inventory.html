@@ -1,0 +1,115 @@
+<section class="inventory-page" aria-labelledby="inventory-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Operaciones</p>
+      <h1 id="inventory-title">Inventario</h1>
+      <p>Consulta existencias y registra movimientos para la empresa activa.</p>
+    </div>
+  </header>
+
+  @if (successMessage(); as message) {
+    <div class="notice success" role="status">{{ message }}</div>
+  }
+  @if (errorMessage(); as message) {
+    <div class="notice error" role="alert">{{ message }}</div>
+  }
+
+  @if (canWrite()) {
+    <form class="movement-form" (submit)="register($event)">
+      <h2>Registrar movimiento</h2>
+      <label>
+        <span>Producto</span>
+        <select required [value]="selectedProductId()" (change)="updateProduct($event)">
+          <option value="">Selecciona un producto</option>
+          @for (stock of stocks(); track stock.productId) {
+            <option [value]="stock.productId">
+              {{ stock.productSku }} · {{ stock.productName }} ({{ stock.quantity }})
+            </option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Tipo</span>
+        <select [value]="movementType()" (change)="updateType($event)">
+          <option value="ENTRY">Entrada</option>
+          <option value="EXIT">Salida</option>
+        </select>
+      </label>
+      <label>
+        <span>Cantidad</span>
+        <input
+          type="number"
+          min="0.0001"
+          step="0.0001"
+          required
+          [value]="quantity()"
+          (input)="updateQuantity($event)"
+        />
+      </label>
+      <button type="submit" [disabled]="pending()">
+        {{ pending() ? 'Guardando…' : 'Registrar' }}
+      </button>
+    </form>
+  }
+
+  @if (status() === 'loading') {
+    <div class="state" role="status">Cargando inventario…</div>
+  }
+  @if (status() === 'error') {
+    <div class="state error-state">
+      <strong>No se pudo cargar el inventario.</strong>
+      <button type="button" (click)="retry()">Reintentar</button>
+    </div>
+  }
+
+  @if (status() === 'success') {
+    <section class="panel" aria-labelledby="stock-title">
+      <h2 id="stock-title">Stock disponible</h2>
+      @if (stocks().length === 0) {
+        <p class="empty">No hay productos para mostrar.</p>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>SKU</th><th>Producto</th><th>Cantidad</th><th>Unidad</th></tr></thead>
+            <tbody>
+              @for (stock of stocks(); track stock.productId) {
+                <tr>
+                  <td><code>{{ stock.productSku }}</code></td>
+                  <td>{{ stock.productName }}</td>
+                  <td class="numeric"><strong>{{ stock.quantity }}</strong></td>
+                  <td>{{ stock.unitOfMeasure }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <h2 id="history-title">Historial de movimientos</h2>
+      @if (movements().length === 0) {
+        <p class="empty">Todavía no hay movimientos registrados.</p>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Usuario</th></tr>
+            </thead>
+            <tbody>
+              @for (movement of movements(); track movement.id) {
+                <tr>
+                  <td>{{ movement.occurredAt | date: 'short' }}</td>
+                  <td><code>{{ movement.productSku }}</code> · {{ movement.productName }}</td>
+                  <td><span class="type" [class.exit]="movement.type === 'EXIT'">{{ typeLabel(movement.type) }}</span></td>
+                  <td class="numeric">{{ movement.quantity }}</td>
+                  <td>{{ movement.responsibleUserEmail }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</section>

@@ -42,7 +42,7 @@ describe('MainLayout', () => {
       'DocumentosPronto',
       'Transformaciones',
       'Productos',
-      'InventarioPronto',
+      'Inventario',
       'ClientesPronto',
       'VentasPronto',
       'GastosPronto',

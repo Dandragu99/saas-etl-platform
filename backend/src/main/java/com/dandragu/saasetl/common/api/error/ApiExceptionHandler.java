@@ -30,9 +30,48 @@ import com.dandragu.saasetl.product.application.DuplicateProductSkuException;
 import com.dandragu.saasetl.product.application.ProductCompanyUnavailableException;
 import com.dandragu.saasetl.product.application.ProductNotFoundException;
 import com.dandragu.saasetl.product.application.ProductVersionConflictException;
+import com.dandragu.saasetl.inventory.application.InsufficientStockException;
+import com.dandragu.saasetl.inventory.application.InvalidInventoryMovementException;
+import com.dandragu.saasetl.inventory.application.InventoryProductNotFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+	@ExceptionHandler(InvalidInventoryMovementException.class)
+	public ResponseEntity<ApiErrorResponse> handleInvalidInventoryMovement(
+			InvalidInventoryMovementException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"INVALID_INVENTORY_MOVEMENT",
+						"Los datos del movimiento de inventario no son válidos.",
+						HttpStatus.BAD_REQUEST),
+				request);
+	}
+
+	@ExceptionHandler(InventoryProductNotFoundException.class)
+	public ResponseEntity<ApiErrorResponse> handleInventoryProductNotFound(
+			InventoryProductNotFoundException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"INVENTORY_PRODUCT_NOT_FOUND",
+						"El producto no existe o no está activo en la empresa actual.",
+						HttpStatus.NOT_FOUND),
+				request);
+	}
+
+	@ExceptionHandler(InsufficientStockException.class)
+	public ResponseEntity<ApiErrorResponse> handleInsufficientStock(
+			InsufficientStockException exception,
+			HttpServletRequest request) {
+		return createResponse(
+				new ErrorDetails(
+						"INSUFFICIENT_STOCK",
+						"La salida supera el stock disponible.",
+						HttpStatus.CONFLICT),
+				request);
+	}
 
 	@ExceptionHandler(InvalidRegistrationRequestException.class)
 	public ResponseEntity<ApiErrorResponse> handleInvalidRegistration(
@@ -54,12 +93,19 @@ public class ApiExceptionHandler {
 			Exception exception,
 			HttpServletRequest request) {
 		boolean productRequest = request.getRequestURI().startsWith("/api/products");
+		boolean inventoryRequest = request.getRequestURI().startsWith("/api/inventory");
+		String code = productRequest
+				? "INVALID_PRODUCT_REQUEST"
+				: inventoryRequest ? "INVALID_INVENTORY_MOVEMENT" : "INVALID_REGISTRATION";
+		String message = productRequest
+				? "Los datos del producto no son válidos."
+				: inventoryRequest
+						? "Los datos del movimiento de inventario no son válidos."
+						: "Los datos de registro no son válidos.";
 		return createResponse(
 				new ErrorDetails(
-						productRequest ? "INVALID_PRODUCT_REQUEST" : "INVALID_REGISTRATION",
-						productRequest
-								? "Los datos del producto no son válidos."
-								: "Los datos de registro no son válidos.",
+						code,
+						message,
 						HttpStatus.BAD_REQUEST),
 				request);
 	}

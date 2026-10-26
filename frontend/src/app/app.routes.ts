@@ -39,6 +39,12 @@ export const routes: Routes = [
         data: { pageTitle: 'Productos' },
         loadComponent: () => import('./products/products').then((module) => module.Products),
       },
+      {
+        path: 'inventario',
+        title: 'Inventario | Nexo ERP',
+        data: { pageTitle: 'Inventario' },
+        loadComponent: () => import('./inventory/inventory').then((module) => module.Inventory),
+      },
       ...comingSoonRoutes(),
     ],
   },
@@ -51,11 +57,6 @@ function comingSoonRoutes(): Routes {
       path: 'documentos',
       title: 'Documentos',
       description: 'Organiza y consulta los documentos de tu negocio desde un único lugar.',
-    },
-    {
-      path: 'inventario',
-      title: 'Inventario',
-      description: 'Controla existencias y movimientos de almacén.',
     },
     {
       path: 'clientes',

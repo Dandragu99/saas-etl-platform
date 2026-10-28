@@ -65,20 +65,39 @@ describe('ProductForm', () => {
     const fixture = createForm();
     submit(fixture);
     expect(create).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain('Introduce un SKU');
-    expect(fixture.nativeElement.textContent).toContain('Usa un importe no negativo');
+    expect(fixture.nativeElement.textContent).toContain('El SKU es obligatorio.');
+    expect(fixture.nativeElement.textContent).toContain('El nombre es obligatorio.');
+    expect(fixture.nativeElement.textContent).toContain('La categoría es obligatoria.');
+    expect(fixture.nativeElement.textContent).toContain('El precio es obligatorio.');
 
     setInput(fixture, 'sku', 'SKU-1');
     setInput(fixture, 'name', 'Product');
     setInput(fixture, 'category', 'Category');
     setInput(fixture, 'price', '-1.00');
     submit(fixture);
-    expect(fixture.nativeElement.textContent).toContain('Usa un importe no negativo');
+    expect(fixture.nativeElement.textContent).toContain('Debe ser un importe no negativo');
 
     setInput(fixture, 'sku', '   ');
     setInput(fixture, 'price', '1.0000');
     submit(fixture);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('should show each length and numeric limit next to its field', () => {
+    const fixture = createForm();
+    setInput(fixture, 'sku', 'S'.repeat(81));
+    setInput(fixture, 'name', 'N'.repeat(161));
+    setInput(fixture, 'category', 'C'.repeat(101));
+    setInput(fixture, 'description', 'D'.repeat(2001));
+    setInput(fixture, 'price', '1000000000000000');
+    submit(fixture);
+
+    const messages = fieldMessages(fixture);
+    expect(messages.get('sku')).toBe('El SKU no puede superar 80 caracteres.');
+    expect(messages.get('name')).toBe('El nombre no puede superar 160 caracteres.');
+    expect(messages.get('category')).toBe('La categoría no puede superar 100 caracteres.');
+    expect(messages.get('description')).toBe('La descripción no puede superar 2000 caracteres.');
+    expect(messages.get('price')).toContain('hasta 15 enteros y 4 decimales');
   });
 
   it('should create a product once and keep price as a string', async () => {
@@ -118,7 +137,10 @@ describe('ProductForm', () => {
     const createFixture = createForm();
     fillValidForm(createFixture);
     submit(createFixture);
-    expect(createFixture.nativeElement.textContent).toContain('Ya existe un producto con ese SKU');
+    expect(fieldMessages(createFixture).get('sku')).toBe(
+      'Ya existe un producto con ese SKU en la empresa activa.',
+    );
+    expect(createFixture.nativeElement.querySelector('.form-error')).toBeNull();
     createFixture.destroy();
 
     vi.spyOn(api, 'updateProduct').mockReturnValueOnce(
@@ -177,4 +199,15 @@ function submit(fixture: ComponentFixture<ProductForm>): void {
 
 function findSubmit(fixture: ComponentFixture<ProductForm>): HTMLButtonElement {
   return fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
+}
+
+function fieldMessages(fixture: ComponentFixture<ProductForm>): Map<string, string> {
+  const messages = new Map<string, string>();
+  const controls = ['sku', 'name', 'category', 'price', 'description'];
+  for (const control of controls) {
+    const field = fixture.nativeElement.querySelector(`[formcontrolname="${control}"]`);
+    const message = field?.closest('label')?.querySelector('small')?.textContent?.trim();
+    if (message) messages.set(control, message);
+  }
+  return messages;
 }

@@ -37,6 +37,17 @@ class ProductTest {
 				.isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> product("   ", BigDecimal.ONE))
 				.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> product("sku", "   ", BigDecimal.ONE))
+				.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> product("sku", "N".repeat(Product.MAX_NAME_LENGTH + 1), BigDecimal.ONE))
+				.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void shouldAcceptPriceBoundaryValues() {
+		assertThat(product("sku", BigDecimal.ZERO).price()).isEqualByComparingTo("0.0000");
+		assertThat(product("sku", new BigDecimal("999999999999999.9999")).price())
+				.isEqualByComparingTo("999999999999999.9999");
 	}
 
 	@Test
@@ -62,11 +73,15 @@ class ProductTest {
 	}
 
 	private Product product(String sku, BigDecimal price) {
+		return product(sku, "Product name", price);
+	}
+
+	private Product product(String sku, String name, BigDecimal price) {
 		return Product.create(
 				new ProductId(UUID.randomUUID()),
 				UUID.randomUUID(),
 				new ProductSku(sku),
-				"Product name",
+				name,
 				" ",
 				"Category",
 				price,

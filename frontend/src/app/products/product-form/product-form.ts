@@ -103,6 +103,24 @@ export class ProductForm implements OnDestroy {
     if (!this.submitting()) this.cancelled.emit();
   }
 
+  protected validationMessage(
+    field: 'sku' | 'name' | 'description' | 'category' | 'price',
+  ): string {
+    const errors = this.form.controls[field].errors;
+    if (errors === null) return '';
+    if (errors['duplicate']) return 'Ya existe un producto con ese SKU en la empresa activa.';
+    if (errors['required'] || (errors['pattern'] && field !== 'price')) {
+      return this.requiredMessage(field);
+    }
+    if (errors['maxlength']) {
+      return this.maximumLengthMessage(field);
+    }
+    if (field === 'price' && errors['pattern']) {
+      return 'Debe ser un importe no negativo, con hasta 15 enteros y 4 decimales.';
+    }
+    return 'El valor introducido no es válido.';
+  }
+
   protected reloadProduct(): void {
     const product = this.product();
     if (product === null || this.submitting() || !this.sameCompany()) return;
@@ -150,7 +168,11 @@ export class ProductForm implements OnDestroy {
   private handleError(error: unknown): void {
     if (error instanceof ProductRequestError) {
       if (error.code === 'PRODUCT_SKU_ALREADY_EXISTS') {
-        this.errorMessage.set('Ya existe un producto con ese SKU en la empresa activa.');
+        this.form.controls.sku.setErrors({
+          ...this.form.controls.sku.errors,
+          duplicate: true,
+        });
+        this.form.controls.sku.markAsTouched();
         return;
       }
       if (error.code === 'PRODUCT_VERSION_CONFLICT') {
@@ -164,5 +186,37 @@ export class ProductForm implements OnDestroy {
       return;
     }
     this.errorMessage.set('No se pudo guardar el producto. Inténtalo de nuevo.');
+  }
+
+  private requiredMessage(field: 'sku' | 'name' | 'description' | 'category' | 'price'): string {
+    switch (field) {
+      case 'sku':
+        return 'El SKU es obligatorio.';
+      case 'name':
+        return 'El nombre es obligatorio.';
+      case 'category':
+        return 'La categoría es obligatoria.';
+      case 'price':
+        return 'El precio es obligatorio.';
+      case 'description':
+        return '';
+    }
+  }
+
+  private maximumLengthMessage(
+    field: 'sku' | 'name' | 'description' | 'category' | 'price',
+  ): string {
+    switch (field) {
+      case 'sku':
+        return 'El SKU no puede superar 80 caracteres.';
+      case 'name':
+        return 'El nombre no puede superar 160 caracteres.';
+      case 'description':
+        return 'La descripción no puede superar 2000 caracteres.';
+      case 'category':
+        return 'La categoría no puede superar 100 caracteres.';
+      case 'price':
+        return '';
+    }
   }
 }

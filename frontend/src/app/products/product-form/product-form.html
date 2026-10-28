@@ -22,21 +22,21 @@
           <span>SKU <em aria-hidden="true">*</em></span>
           <input formControlName="sku" maxlength="80" autocomplete="off" />
           @if (form.controls.sku.touched && form.controls.sku.invalid) {
-            <small>Introduce un SKU de hasta 80 caracteres.</small>
+            <small>{{ validationMessage('sku') }}</small>
           }
         </label>
         <label>
           <span>Nombre <em aria-hidden="true">*</em></span>
           <input formControlName="name" maxlength="160" autocomplete="off" />
           @if (form.controls.name.touched && form.controls.name.invalid) {
-            <small>Introduce un nombre de hasta 160 caracteres.</small>
+            <small>{{ validationMessage('name') }}</small>
           }
         </label>
         <label>
           <span>Categoría <em aria-hidden="true">*</em></span>
           <input formControlName="category" maxlength="100" autocomplete="off" />
           @if (form.controls.category.touched && form.controls.category.invalid) {
-            <small>Introduce una categoría de hasta 100 caracteres.</small>
+            <small>{{ validationMessage('category') }}</small>
           }
         </label>
         <label>
@@ -48,7 +48,7 @@
             autocomplete="off"
           />
           @if (form.controls.price.touched && form.controls.price.invalid) {
-            <small>Usa un importe no negativo, con hasta 15 enteros y 4 decimales.</small>
+            <small>{{ validationMessage('price') }}</small>
           }
         </label>
         <label>
@@ -63,7 +63,7 @@
           <span>Descripción</span>
           <textarea formControlName="description" maxlength="2000" rows="4"></textarea>
           @if (form.controls.description.touched && form.controls.description.invalid) {
-            <small>La descripción no puede superar 2000 caracteres.</small>
+            <small>{{ validationMessage('description') }}</small>
           }
         </label>
       </div>

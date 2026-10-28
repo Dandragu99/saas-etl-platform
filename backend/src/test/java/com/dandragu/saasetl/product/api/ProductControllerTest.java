@@ -134,15 +134,40 @@ class ProductControllerTest {
 	}
 
 	@Test
-	void shouldRejectInvalidProductData() throws Exception {
-		mockMvc.perform(post("/api/products")
+	void shouldRejectMissingAndOversizedProductFields() throws Exception {
+		assertInvalidCreate("""
+				{"sku":" ","name":" ","category":" ","price":"","unitOfMeasure":null}
+				""");
+		assertInvalidCreate("""
+				{"sku":"%s","name":"%s","description":"%s","category":"%s",
+				 "price":"1.0000","unitOfMeasure":"UNIT"}
+				""".formatted("S".repeat(81), "N".repeat(161), "D".repeat(2001), "C".repeat(101)));
+	}
+
+	@Test
+	void shouldRejectInvalidPriceLimitsOnCreateAndUpdate() throws Exception {
+		assertInvalidCreate("""
+				{"sku":"SKU","name":"Product","category":"Category",
+				 "price":"-1.00","unitOfMeasure":"UNIT"}
+				""");
+		assertInvalidCreate("""
+				{"sku":"SKU","name":"Product","category":"Category",
+				 "price":"1000000000000000","unitOfMeasure":"UNIT"}
+				""");
+		assertInvalidCreate("""
+				{"sku":"SKU","name":"Product","category":"Category",
+				 "price":"1.00001","unitOfMeasure":"UNIT"}
+				""");
+
+		mockMvc.perform(put("/api/products/" + UUID.randomUUID())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content("""
-							{"sku":"SKU","name":"Product","category":"Category",
-							 "price":"-1.00","unitOfMeasure":"UNIT"}
+							{"expectedVersion":0,"sku":"SKU","name":" ","category":"Category",
+							 "price":"1.0000","unitOfMeasure":"UNIT"}
 							"""))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.code").value("INVALID_PRODUCT_REQUEST"));
+				.andExpect(jsonPath("$.code").value("INVALID_PRODUCT_REQUEST"))
+				.andExpect(jsonPath("$.message").value("Los datos del producto no son válidos."));
 	}
 
 	@Test
@@ -159,7 +184,9 @@ class ProductControllerTest {
 				""";
 		mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(body))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.code").value("PRODUCT_SKU_ALREADY_EXISTS"));
+				.andExpect(jsonPath("$.code").value("PRODUCT_SKU_ALREADY_EXISTS"))
+				.andExpect(jsonPath("$.message")
+						.value("Ya existe un producto con ese SKU en la empresa activa."));
 
 		mockMvc.perform(put("/api/products/" + product.id().value())
 					.contentType(MediaType.APPLICATION_JSON)
@@ -169,6 +196,15 @@ class ProductControllerTest {
 							"""))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.code").value("PRODUCT_VERSION_CONFLICT"));
+	}
+
+	private void assertInvalidCreate(String body) throws Exception {
+		mockMvc.perform(post("/api/products")
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(body))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PRODUCT_REQUEST"))
+				.andExpect(jsonPath("$.message").value("Los datos del producto no son válidos."));
 	}
 
 	private Product product() {

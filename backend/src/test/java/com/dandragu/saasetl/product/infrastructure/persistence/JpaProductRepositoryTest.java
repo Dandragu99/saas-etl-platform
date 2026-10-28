@@ -90,14 +90,59 @@ class JpaProductRepositoryTest {
 		productRepository.save(product(secondCompany, "A-1", "Foreign chair", "Furniture", true));
 
 		var firstPage = productRepository.search(firstCompany.id(), new ProductQuery(
-				"chair", null, "furn", null, 0, 1, ProductSort.NAME, ProductSortDirection.DESC));
+				null, "chair", null, "furn", null, 0, 1, ProductSort.NAME, ProductSortDirection.DESC));
 		var active = productRepository.search(firstCompany.id(), new ProductQuery(
-				null, "c-3", null, true, 0, 10, ProductSort.SKU, ProductSortDirection.ASC));
+				null, null, "c-3", null, true, 0, 10, ProductSort.SKU, ProductSortDirection.ASC));
 
 		assertThat(firstPage.totalElements()).isEqualTo(2);
 		assertThat(firstPage.totalPages()).isEqualTo(2);
 		assertThat(firstPage.content()).extracting(Product::name).containsExactly("Beta chair");
 		assertThat(active.content()).extracting(Product::name).containsExactly("Cable");
+	}
+
+	@Test
+	void shouldSearchByPartialNameOrSkuIgnoringCase() {
+		Company company = company("Company", "EUR");
+		productRepository.save(product(company, "CHAIR-RED", "Office chair", "Furniture", true));
+		productRepository.save(product(company, "DESK-BLUE", "Standing desk", "Furniture", true));
+
+		var byName = productRepository.search(company.id(), query("FiCe Ch"));
+		var bySku = productRepository.search(company.id(), query("air-Re"));
+
+		assertThat(byName.content()).extracting(Product::sku)
+				.extracting(ProductSku::value)
+				.containsExactly("CHAIR-RED");
+		assertThat(bySku.content()).extracting(Product::name).containsExactly("Office chair");
+	}
+
+	@Test
+	void shouldReturnAnEmptyPageWhenSearchDoesNotMatch() {
+		Company company = company("Company", "EUR");
+		productRepository.save(product(company, "CHAIR-1", "Office chair", "Furniture", true));
+
+		var result = productRepository.search(company.id(), query("missing"));
+
+		assertThat(result.content()).isEmpty();
+		assertThat(result.totalElements()).isZero();
+	}
+
+	@Test
+	void shouldNotReturnMatchingProductsFromAnotherCompany() {
+		Company firstCompany = company("First", "EUR");
+		Company secondCompany = company("Second", "EUR");
+		productRepository.save(product(firstCompany, "LOCAL-1", "Local product", "Category", true));
+		productRepository.save(product(secondCompany, "SECRET-1", "Shared search term", "Category", true));
+
+		var result = productRepository.search(firstCompany.id(), query("Shared"));
+
+		assertThat(result.content()).isEmpty();
+		assertThat(result.totalElements()).isZero();
+	}
+
+	private ProductQuery query(String search) {
+		return new ProductQuery(
+				search, null, null, null, null, 0, 20,
+				ProductSort.NAME, ProductSortDirection.ASC);
 	}
 
 	private Company company(String name, String currency) {

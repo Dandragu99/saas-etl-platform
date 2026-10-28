@@ -85,6 +85,11 @@ public class JpaProductRepository implements ProductRepository {
 
 		Specification<ProductEntity> specification = (root, criteriaQuery, builder) ->
 				builder.equal(root.get("companyId"), companyId);
+		if (query.search() != null) {
+			specification = specification.and(
+					containsIgnoringCase("name", query.search())
+							.or(containsIgnoringCase("normalizedSku", query.search())));
+		}
 		if (query.name() != null) {
 			specification = specification.and(containsIgnoringCase("name", query.name()));
 		}

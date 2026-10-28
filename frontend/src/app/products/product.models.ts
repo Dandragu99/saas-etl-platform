@@ -27,6 +27,7 @@ export interface ProductPage {
 }
 
 export interface ProductQuery {
+  readonly search?: string;
   readonly name?: string;
   readonly sku?: string;
   readonly category?: string;

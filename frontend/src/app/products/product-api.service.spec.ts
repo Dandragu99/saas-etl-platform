@@ -45,6 +45,7 @@ describe('ProductApiService', () => {
     };
     const result = firstValueFrom(
       service.getProducts({
+        search: ' Chair or CH ',
         name: ' Chair ',
         sku: ' CH ',
         category: ' Furniture ',
@@ -56,7 +57,7 @@ describe('ProductApiService', () => {
       }),
     );
     const request = http.expectOne(
-      '/api/products?page=0&size=20&sort=price&direction=desc&name=Chair&sku=CH&category=Furniture&active=false',
+      '/api/products?page=0&size=20&sort=price&direction=desc&search=Chair%20or%20CH&name=Chair&sku=CH&category=Furniture&active=false',
     );
 
     expect(request.request.method).toBe('GET');
@@ -67,6 +68,7 @@ describe('ProductApiService', () => {
   it('should omit empty optional filters', async () => {
     const result = firstValueFrom(
       service.getProducts({
+        search: ' ',
         name: ' ',
         page: 2,
         size: 20,

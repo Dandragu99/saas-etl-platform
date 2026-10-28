@@ -35,8 +35,7 @@ export class Products implements OnDestroy {
   protected readonly totalElements = signal(0);
   protected readonly totalPages = signal(0);
   protected readonly currentPage = signal(0);
-  protected readonly nameFilter = signal('');
-  protected readonly skuFilter = signal('');
+  protected readonly searchFilter = signal('');
   protected readonly categoryFilter = signal('');
   protected readonly activeFilter = signal<boolean | undefined>(undefined);
   protected readonly sort = signal<ProductSort>('name');
@@ -83,12 +82,8 @@ export class Products implements OnDestroy {
     this.reload();
   }
 
-  protected updateName(event: Event): void {
-    this.nameFilter.set((event.target as HTMLInputElement).value);
-  }
-
-  protected updateSku(event: Event): void {
-    this.skuFilter.set((event.target as HTMLInputElement).value);
+  protected updateSearch(event: Event): void {
+    this.searchFilter.set((event.target as HTMLInputElement).value);
   }
 
   protected updateCategory(event: Event): void {
@@ -115,8 +110,7 @@ export class Products implements OnDestroy {
   }
 
   protected clearFilters(): void {
-    this.nameFilter.set('');
-    this.skuFilter.set('');
+    this.searchFilter.set('');
     this.categoryFilter.set('');
     this.activeFilter.set(undefined);
     this.currentPage.set(0);
@@ -249,8 +243,7 @@ export class Products implements OnDestroy {
     this.errorMessage.set(null);
 
     const query: ProductQuery = {
-      name: this.nameFilter(),
-      sku: this.skuFilter(),
+      search: this.searchFilter(),
       category: this.categoryFilter(),
       active: this.activeFilter(),
       page: this.currentPage(),

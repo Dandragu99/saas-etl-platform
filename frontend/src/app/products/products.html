@@ -29,21 +29,12 @@
 
   <form class="filters" aria-label="Filtros de productos" (submit)="applyFilters($event)">
     <label>
-      <span>Nombre</span>
+      <span>Nombre o SKU</span>
       <input
         type="search"
-        placeholder="Buscar por nombre"
-        [value]="nameFilter()"
-        (input)="updateName($event)"
-      />
-    </label>
-    <label>
-      <span>SKU</span>
-      <input
-        type="search"
-        placeholder="Buscar por SKU"
-        [value]="skuFilter()"
-        (input)="updateSku($event)"
+        placeholder="Buscar por nombre o SKU"
+        [value]="searchFilter()"
+        (input)="updateSearch($event)"
       />
     </label>
     <label>

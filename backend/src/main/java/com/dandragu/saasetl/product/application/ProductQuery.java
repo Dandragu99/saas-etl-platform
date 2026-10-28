@@ -1,6 +1,7 @@
 package com.dandragu.saasetl.product.application;
 
 public record ProductQuery(
+		String search,
 		String name,
 		String sku,
 		String category,
@@ -16,6 +17,7 @@ public record ProductQuery(
 	public static final ProductSortDirection DEFAULT_DIRECTION = ProductSortDirection.ASC;
 
 	public ProductQuery {
+		search = normalizeFilter(search, "search", 160);
 		name = normalizeFilter(name, "name", 160);
 		sku = normalizeFilter(sku, "sku", 80);
 		category = normalizeFilter(category, "category", 100);

@@ -87,22 +87,20 @@ describe('Products', () => {
     expect(element.querySelector('[data-active="true"]')?.textContent).toContain('Activo');
   });
 
-  it('should apply name, sku and category filters using the backend', async () => {
+  it('should apply the name-or-sku search and category filter using the backend', async () => {
     const getProducts = vi.spyOn(api, 'getProducts');
     const fixture = createComponent();
     await fixture.whenStable();
     const inputs = fixture.nativeElement.querySelectorAll('input') as NodeListOf<HTMLInputElement>;
     inputs[0].value = 'chair';
     inputs[0].dispatchEvent(new Event('input'));
-    inputs[1].value = 'CH';
+    inputs[1].value = 'Furniture';
     inputs[1].dispatchEvent(new Event('input'));
-    inputs[2].value = 'Furniture';
-    inputs[2].dispatchEvent(new Event('input'));
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
     await fixture.whenStable();
 
     expect(getProducts).toHaveBeenLastCalledWith(
-      expect.objectContaining({ name: 'chair', sku: 'CH', category: 'Furniture', page: 0 }),
+      expect.objectContaining({ search: 'chair', category: 'Furniture', page: 0 }),
     );
   });
 

@@ -57,6 +57,7 @@ class ProductControllerTest {
 				.thenReturn(new ProductPage(List.of(product), 1, 0, 20));
 
 		mockMvc.perform(get("/api/products")
+					.param("search", "chair-or-sku")
 					.param("name", "chair")
 					.param("active", "true")
 					.param("sort", "price")

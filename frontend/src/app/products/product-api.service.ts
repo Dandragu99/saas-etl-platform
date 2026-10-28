@@ -24,6 +24,7 @@ export class ProductApiService {
       .set('sort', query.sort)
       .set('direction', query.direction);
 
+    params = this.addTextFilter(params, 'search', query.search);
     params = this.addTextFilter(params, 'name', query.name);
     params = this.addTextFilter(params, 'sku', query.sku);
     params = this.addTextFilter(params, 'category', query.category);

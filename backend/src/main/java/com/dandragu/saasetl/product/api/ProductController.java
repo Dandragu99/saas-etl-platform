@@ -39,6 +39,7 @@ public class ProductController {
 
 	@GetMapping
 	public ProductPageResponse getProducts(
+			@RequestParam(required = false) String search,
 			@RequestParam(required = false) String name,
 			@RequestParam(required = false) String sku,
 			@RequestParam(required = false) String category,
@@ -50,6 +51,7 @@ public class ProductController {
 		ProductQuery query;
 		try {
 			query = new ProductQuery(
+					search,
 					name,
 					sku,
 					category,

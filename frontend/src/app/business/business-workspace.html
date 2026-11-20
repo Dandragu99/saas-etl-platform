@@ -1,0 +1,110 @@
+<div class="workspace">
+  <header class="hero">
+    <div>
+      <span class="eyebrow">Gestión para instaladores</span>
+      <h1>Clientes, presupuestos y facturas</h1>
+      <p>Del primer contacto a la factura, en un único flujo sencillo.</p>
+    </div>
+    @if (canWrite()) {
+      <button class="secondary" type="button" (click)="seed()" [disabled]="pending()">Cargar datos de demo</button>
+    }
+  </header>
+
+  @if (error()) { <div class="alert error" role="alert">{{ error() }}</div> }
+  @if (notice()) { <div class="alert success" role="status">{{ notice() }}</div> }
+
+  @if (loading()) {
+    <div class="loading">Cargando área comercial…</div>
+  } @else {
+    <section class="metrics" aria-label="Resumen comercial">
+      <article><span>Clientes</span><strong>{{ dashboard()?.customers ?? 0 }}</strong></article>
+      <article><span>Obras activas</span><strong>{{ dashboard()?.activeWorks ?? 0 }}</strong></article>
+      <article><span>Presupuestos</span><strong>{{ dashboard()?.quotes ?? 0 }}</strong></article>
+      <article><span>Facturas</span><strong>{{ dashboard()?.invoices ?? 0 }}</strong></article>
+      <article class="revenue"><span>Facturación emitida</span><strong>{{ money(dashboard()?.pendingRevenue ?? 0) }}</strong></article>
+    </section>
+
+    <section class="flow">
+      <div class="step"><b>1</b><span>Crear cliente</span></div><i></i>
+      <div class="step"><b>2</b><span>Preparar presupuesto</span></div><i></i>
+      <div class="step"><b>3</b><span>Emitir factura</span></div><i></i>
+      <div class="step"><b>4</b><span>Descargar PDF</span></div>
+    </section>
+
+    @if (canWrite()) {
+      <div class="form-grid">
+        <section class="panel">
+          <div class="panel-title"><span>01</span><div><h2>{{ editingCustomerId() ? 'Editar cliente' : 'Nuevo cliente' }}</h2><p>Datos de contacto y facturación</p></div></div>
+          <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()" novalidate>
+            <label>Nombre o razón social *<input formControlName="name" placeholder="Ej. Reformas García" /></label>
+            @if (fieldError('name')) { <small class="validation">{{ fieldError('name') }}</small> }
+            <div class="fields">
+              <label>NIF / CIF<input formControlName="taxId" placeholder="12345678A" /></label>
+              <label>Teléfono<input formControlName="phone" type="tel" placeholder="600 123 123" /></label>
+            </div>
+            <label>Correo electrónico<input formControlName="email" type="email" placeholder="cliente@ejemplo.es" /></label>
+            @if (fieldError('email')) { <small class="validation">{{ fieldError('email') }}</small> }
+            <label>Dirección<input formControlName="address" placeholder="Dirección de facturación" /></label>
+            <div class="actions"><button type="submit" [disabled]="pending()">{{ editingCustomerId() ? 'Guardar cambios' : 'Guardar cliente' }}</button>@if (editingCustomerId()) { <button class="secondary" type="button" (click)="cancelEdit()">Cancelar</button> }</div>
+          </form>
+          @if (customers().length > 0) {
+            <div class="customer-list"><h3>Clientes</h3>@for (customer of customers(); track customer.id) { <article><div><strong>{{ customer.name }}</strong><span>{{ customer.phone || customer.email || 'Sin contacto' }}</span></div><button class="secondary" type="button" (click)="editCustomer(customer)">Editar</button></article> }</div>
+          }
+        </section>
+
+        <section class="panel quote-panel">
+          <div class="panel-title"><span>02</span><div><h2>Nuevo presupuesto</h2><p>Conceptos, precios e IVA</p></div></div>
+          <form [formGroup]="quoteForm" (ngSubmit)="saveQuote()" novalidate>
+            <label>Cliente *
+              <select formControlName="customerId"><option value="">Selecciona un cliente</option>@for (customer of customers(); track customer.id) { <option [value]="customer.id">{{ customer.name }}</option> }</select>
+            </label>
+            <div class="fields">
+              <label>Fecha *<input formControlName="issueDate" type="date" /></label>
+              <label>Válido hasta *<input formControlName="validUntil" type="date" /></label>
+            </div>
+            <div formArrayName="lines" class="lines">
+              @for (line of lines.controls; track $index) {
+                <div class="line" [formGroupName]="$index">
+                  <label class="concept">Concepto *<input formControlName="description" placeholder="Instalación cuadro eléctrico" /></label>
+                  <label>Cant.<input formControlName="quantity" type="number" step="0.001" /></label>
+                  <label>Precio<input formControlName="unitPrice" type="number" step="0.01" /></label>
+                  <label>IVA %<input formControlName="taxRate" type="number" step="0.01" /></label>
+                  <button class="icon" type="button" aria-label="Eliminar concepto" (click)="removeLine($index)" [disabled]="lines.length === 1">×</button>
+                </div>
+              }
+            </div>
+            <button class="text-button" type="button" (click)="addLine()">+ Añadir concepto</button>
+            @if (quoteForm.touched && quoteForm.invalid) { <small class="validation">Revisa los campos obligatorios y los importes del presupuesto.</small> }
+            <button type="submit" [disabled]="pending() || customers().length === 0">Crear presupuesto</button>
+          </form>
+        </section>
+      </div>
+    }
+
+    <div class="lists">
+      <section class="panel">
+        <div class="panel-title"><span>03</span><div><h2>Presupuestos</h2><p>Listos para presentar o facturar</p></div></div>
+        @if (quotes().length === 0) { <p class="empty">Todavía no hay presupuestos.</p> }
+        @for (quote of quotes(); track quote.id) {
+          <article class="document">
+            <div><strong>{{ quote.number }}</strong><span>{{ quote.customerName }} · {{ quote.issueDate | date:'dd/MM/yyyy' }}</span></div>
+            <b>{{ money(quote.total) }}</b><em>{{ quote.status === 'INVOICED' ? 'Facturado' : 'Borrador' }}</em>
+            <div class="actions"><button class="secondary" type="button" (click)="download('quotes', quote.id, quote.number)">PDF</button>@if (canWrite() && quote.status !== 'INVOICED') { <button type="button" (click)="convert(quote)" [disabled]="pending()">Convertir en factura</button> }</div>
+          </article>
+        }
+      </section>
+      <section class="panel">
+        <div class="panel-title"><span>04</span><div><h2>Facturas</h2><p>Documentos comerciales emitidos</p></div></div>
+        @if (invoices().length === 0) { <p class="empty">Las facturas aparecerán aquí.</p> }
+        @for (invoice of invoices(); track invoice.id) {
+          <article class="document">
+            <div><strong>{{ invoice.number }}</strong><span>{{ invoice.customerName }} · {{ invoice.issueDate | date:'dd/MM/yyyy' }}</span></div>
+            <b>{{ money(invoice.total) }}</b><em>Emitida</em>
+            <button class="secondary" type="button" (click)="download('invoices', invoice.id, invoice.number)">Descargar PDF</button>
+          </article>
+        }
+        <p class="disclaimer">Prototipo de demostración. La emisión de documentos no implica cumplimiento fiscal o legal en producción.</p>
+      </section>
+    </div>
+  }
+</div>

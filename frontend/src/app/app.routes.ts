@@ -45,6 +45,15 @@ export const routes: Routes = [
         data: { pageTitle: 'Inventario' },
         loadComponent: () => import('./inventory/inventory').then((module) => module.Inventory),
       },
+      {
+        path: 'gestion',
+        title: 'Clientes y ventas | Nexo ERP',
+        data: { pageTitle: 'Clientes y ventas' },
+        loadComponent: () =>
+          import('./business/business-workspace').then((module) => module.BusinessWorkspace),
+      },
+      { path: 'clientes', pathMatch: 'full', redirectTo: 'gestion' },
+      { path: 'ventas', pathMatch: 'full', redirectTo: 'gestion' },
       ...comingSoonRoutes(),
     ],
   },
@@ -57,16 +66,6 @@ function comingSoonRoutes(): Routes {
       path: 'documentos',
       title: 'Documentos',
       description: 'Organiza y consulta los documentos de tu negocio desde un único lugar.',
-    },
-    {
-      path: 'clientes',
-      title: 'Clientes',
-      description: 'Centraliza la información y la actividad de tus clientes.',
-    },
-    {
-      path: 'ventas',
-      title: 'Ventas',
-      description: 'Gestiona presupuestos, pedidos y facturación.',
     },
     {
       path: 'gastos',

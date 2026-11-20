@@ -15,4 +15,11 @@ describe('hasCompanyPermission', () => {
     expect(hasCompanyPermission('VIEWER', 'INVENTORY_WRITE')).toBe(false);
     expect(hasCompanyPermission('VIEWER', 'INVENTORY_READ')).toBe(true);
   });
+
+  it('should keep commercial writes restricted while allowing company members to read', () => {
+    expect(hasCompanyPermission('OWNER', 'BUSINESS_WRITE')).toBe(true);
+    expect(hasCompanyPermission('ADMIN', 'BUSINESS_WRITE')).toBe(true);
+    expect(hasCompanyPermission('VIEWER', 'BUSINESS_WRITE')).toBe(false);
+    expect(hasCompanyPermission('VIEWER', 'BUSINESS_READ')).toBe(true);
+  });
 });

@@ -43,8 +43,7 @@ describe('MainLayout', () => {
       'Transformaciones',
       'Productos',
       'Inventario',
-      'ClientesPronto',
-      'VentasPronto',
+      'Clientes y ventas',
       'GastosPronto',
       'Asistente IAPronto',
     ]);

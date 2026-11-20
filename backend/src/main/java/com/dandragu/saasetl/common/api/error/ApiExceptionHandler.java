@@ -33,6 +33,8 @@ import com.dandragu.saasetl.product.application.ProductVersionConflictException;
 import com.dandragu.saasetl.inventory.application.InsufficientStockException;
 import com.dandragu.saasetl.inventory.application.InvalidInventoryMovementException;
 import com.dandragu.saasetl.inventory.application.InventoryProductNotFoundException;
+import com.dandragu.saasetl.business.application.BusinessNotFoundException;
+import com.dandragu.saasetl.business.application.BusinessValidationException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -73,6 +75,22 @@ public class ApiExceptionHandler {
 				request);
 	}
 
+	@ExceptionHandler(BusinessValidationException.class)
+	public ResponseEntity<ApiErrorResponse> handleBusinessValidation(
+			BusinessValidationException exception, HttpServletRequest request) {
+		return createResponse(new ErrorDetails(
+				"INVALID_BUSINESS_REQUEST", "Los datos comerciales no son válidos.",
+				HttpStatus.BAD_REQUEST), request);
+	}
+
+	@ExceptionHandler(BusinessNotFoundException.class)
+	public ResponseEntity<ApiErrorResponse> handleBusinessNotFound(
+			BusinessNotFoundException exception, HttpServletRequest request) {
+		return createResponse(new ErrorDetails(
+				"BUSINESS_RESOURCE_NOT_FOUND", "El recurso solicitado no existe.",
+				HttpStatus.NOT_FOUND), request);
+	}
+
 	@ExceptionHandler(InvalidRegistrationRequestException.class)
 	public ResponseEntity<ApiErrorResponse> handleInvalidRegistration(
 			Exception exception,
@@ -94,14 +112,14 @@ public class ApiExceptionHandler {
 			HttpServletRequest request) {
 		boolean productRequest = request.getRequestURI().startsWith("/api/products");
 		boolean inventoryRequest = request.getRequestURI().startsWith("/api/inventory");
-		String code = productRequest
-				? "INVALID_PRODUCT_REQUEST"
+		boolean businessRequest = request.getRequestURI().startsWith("/api/business");
+		String code = businessRequest ? "INVALID_BUSINESS_REQUEST"
+				: productRequest ? "INVALID_PRODUCT_REQUEST"
 				: inventoryRequest ? "INVALID_INVENTORY_MOVEMENT" : "INVALID_REGISTRATION";
-		String message = productRequest
-				? "Los datos del producto no son válidos."
-				: inventoryRequest
-						? "Los datos del movimiento de inventario no son válidos."
-						: "Los datos de registro no son válidos.";
+		String message = businessRequest ? "Los datos comerciales no son válidos."
+				: productRequest ? "Los datos del producto no son válidos."
+				: inventoryRequest ? "Los datos del movimiento de inventario no son válidos."
+				: "Los datos de registro no son válidos.";
 		return createResponse(
 				new ErrorDetails(
 						code,

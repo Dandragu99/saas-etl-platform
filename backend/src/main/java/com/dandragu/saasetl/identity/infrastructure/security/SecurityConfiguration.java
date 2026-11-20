@@ -137,6 +137,7 @@ public class SecurityConfiguration {
 								"/api/auth/logout",
 								"/api/products/**",
 								"/api/inventory/**",
+								"/api/business/**",
 								"/api/etl/executions/**",
 								"/api/csv/**").authenticated()
 						.anyRequest().denyAll())

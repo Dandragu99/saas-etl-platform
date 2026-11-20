@@ -52,6 +52,8 @@ class CompanyAuthorizationServiceTest {
 					CompanyPermission.PRODUCT_WRITE,
 					CompanyPermission.INVENTORY_READ,
 					CompanyPermission.INVENTORY_WRITE,
+					CompanyPermission.BUSINESS_READ,
+					CompanyPermission.BUSINESS_WRITE,
 					CompanyPermission.ETL_READ,
 					CompanyPermission.ETL_EXECUTE);
 			case INVENTORY_MANAGER -> EnumSet.of(
@@ -59,12 +61,14 @@ class CompanyAuthorizationServiceTest {
 					CompanyPermission.PRODUCT_READ,
 					CompanyPermission.INVENTORY_READ,
 					CompanyPermission.INVENTORY_WRITE,
+					CompanyPermission.BUSINESS_READ,
 					CompanyPermission.ETL_READ,
 					CompanyPermission.ETL_EXECUTE);
 			case VIEWER -> EnumSet.of(
 					CompanyPermission.COMPANY_READ,
 					CompanyPermission.PRODUCT_READ,
 					CompanyPermission.INVENTORY_READ,
+					CompanyPermission.BUSINESS_READ,
 					CompanyPermission.ETL_READ);
 		};
 	}

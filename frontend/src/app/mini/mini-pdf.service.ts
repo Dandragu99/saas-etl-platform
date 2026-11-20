@@ -1,9 +1,23 @@
 import { Injectable } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { MiniQuote, MiniSettings } from './mini.models';
 
 @Injectable({ providedIn: 'root' })
 export class MiniPdfService {
-  download(quote: MiniQuote, settings: MiniSettings): void {
+  async download(quote: MiniQuote, settings: MiniSettings): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      const uri = await this.writeNativePdf(quote, settings, Directory.Documents);
+      await Share.share({
+        title: quote.number,
+        text: 'Presupuesto de demostración de Voltia Mini',
+        url: uri,
+        dialogTitle: 'Abrir o guardar PDF',
+      });
+      return;
+    }
+
     const url = URL.createObjectURL(this.create(quote, settings));
     const anchor = document.createElement('a');
     anchor.href = url;
@@ -13,13 +27,24 @@ export class MiniPdfService {
   }
 
   async share(quote: MiniQuote, settings: MiniSettings): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      const uri = await this.writeNativePdf(quote, settings, Directory.Cache);
+      await Share.share({
+        title: quote.number,
+        text: 'Presupuesto de demostración de Voltia Mini',
+        url: uri,
+        dialogTitle: 'Compartir presupuesto',
+      });
+      return;
+    }
+
     const file = new File([this.create(quote, settings)], `${quote.number}.pdf`, {
       type: 'application/pdf',
     });
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({ title: quote.number, files: [file] });
     } else {
-      this.download(quote, settings);
+      await this.download(quote, settings);
     }
   }
 
@@ -80,5 +105,30 @@ export class MiniPdfService {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^\x20-\x7E]/g, '')
       .replace(/[()\\]/g, '\\$&');
+  }
+
+  private async writeNativePdf(
+    quote: MiniQuote,
+    settings: MiniSettings,
+    directory: Directory,
+  ): Promise<string> {
+    const data = await this.toBase64(this.create(quote, settings));
+    const result = await Filesystem.writeFile({
+      path: `${quote.number}.pdf`,
+      data,
+      directory,
+      recursive: true,
+    });
+    return result.uri;
+  }
+
+  private async toBase64(blob: Blob): Promise<string> {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const chunks: string[] = [];
+    const chunkSize = 8192;
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+      chunks.push(String.fromCharCode(...bytes.subarray(index, index + chunkSize)));
+    }
+    return btoa(chunks.join(''));
   }
 }

@@ -39,7 +39,7 @@ export class MiniQuotes {
     this.date.set((event.target as HTMLInputElement).value);
   }
   protected download(quote: MiniQuote): void {
-    this.pdf.download(quote, this.store.settings());
+    void this.pdf.download(quote, this.store.settings());
   }
   protected share(quote: MiniQuote): void {
     void this.pdf.share(quote, this.store.settings());

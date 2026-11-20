@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="#071F35" />
-    <item android:width="112dp" android:height="112dp" android:gravity="center" android:drawable="@drawable/voltiamini_mark" />
+
+  <!-- Fondo azul oscuro de Voltia Mini -->
+  <item>
+    <shape android:shape="rectangle">
+      <solid android:color="#071F35" />
+    </shape>
+  </item>
+
+  <!-- Logotipo centrado -->
+  <item
+    android:width="112dp"
+    android:height="112dp"
+    android:gravity="center"
+    android:drawable="@drawable/voltiamini_mark" />
+
 </layer-list>

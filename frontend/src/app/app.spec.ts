@@ -7,7 +7,6 @@ import { of } from 'rxjs';
 import { AuthSessionService } from './auth/auth-session.service';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { EtlExecutionApiService } from './execution-history/etl-execution-api.service';
 
 describe('App', () => {
   const session = {
@@ -34,14 +33,6 @@ describe('App', () => {
         provideHttpClient(),
         provideRouter(routes),
         { provide: AuthSessionService, useValue: sessions },
-        {
-          provide: EtlExecutionApiService,
-          useValue: {
-            getExecutions: () =>
-              of({ executions: [], totalElements: 0, page: 0, size: 10, totalPages: 0 }),
-            getSummary: () => of({ total: 0, successful: 0, failed: 0, inProgress: 0 }),
-          },
-        },
       ],
     }).compileComponents();
   });
@@ -60,7 +51,7 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('app-main-layout')).not.toBeNull();
     expect(compiled.querySelector('app-dashboard')).not.toBeNull();
-    expect(compiled.querySelector('app-etl-execution-history')).not.toBeNull();
-    expect(compiled.querySelector('h1')?.textContent).toContain('Tu actividad, de un vistazo');
+    expect(compiled.querySelector('.mobile-navigation')).not.toBeNull();
+    expect(compiled.querySelector('h1')?.textContent).toContain('Buenos días');
   });
 });

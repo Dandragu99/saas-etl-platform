@@ -1,0 +1,62 @@
+.works-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.work-card {
+  padding: 1.2rem;
+}
+.work-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.work-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 12px;
+  color: #082a43;
+  background: #f5d936;
+  font-size: 1.1rem;
+}
+.work-card h2 {
+  margin: 1rem 0 0.25rem;
+  font-size: 1rem;
+}
+.client {
+  margin: 0;
+  color: #087c85;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+.meta {
+  margin: 0.65rem 0 0;
+  color: #728391;
+  font-size: 0.76rem;
+}
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin: 1.1rem 0 0.4rem;
+  color: #617482;
+  font-size: 0.72rem;
+}
+.work-card button {
+  width: 100%;
+  margin-top: 1rem;
+}
+@media (max-width: 900px) {
+  .works-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .works-grid {
+    grid-template-columns: 1fr;
+  }
+  .work-card {
+    padding: 1rem;
+  }
+}

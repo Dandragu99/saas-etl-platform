@@ -29,19 +29,14 @@ export class MainLayout implements OnInit {
   protected readonly companyLoading = signal(false);
   protected readonly sessionActionPending = signal(false);
   protected readonly navigation: readonly NavigationItem[] = [
-    { label: 'Dashboard', route: '/dashboard', icon: 'dashboard', available: true },
-    { label: 'Documentos', route: '/documentos', icon: 'document', available: false },
-    {
-      label: 'Transformaciones',
-      route: '/transformaciones',
-      icon: 'transform',
-      available: true,
-    },
-    { label: 'Productos', route: '/productos', icon: 'product', available: true },
+    { label: 'Inicio', route: '/dashboard', icon: 'dashboard', available: true },
+    { label: 'Obras', route: '/obras', icon: 'work', available: true },
+    { label: 'Clientes', route: '/clientes', icon: 'clients', available: true },
+    { label: 'Presupuestos', route: '/gestion', icon: 'document', available: true },
+    { label: 'Facturas', route: '/facturas', icon: 'sales', available: true },
     { label: 'Inventario', route: '/inventario', icon: 'inventory', available: true },
-    { label: 'Clientes y ventas', route: '/gestion', icon: 'clients', available: true },
-    { label: 'Gastos', route: '/gastos', icon: 'expenses', available: false },
-    { label: 'Asistente IA', route: '/asistente-ia', icon: 'assistant', available: false },
+    { label: 'Asistente IA', route: '/asistente-ia', icon: 'assistant', available: true },
+    { label: 'Herramientas Nexo', route: '/transformaciones', icon: 'transform', available: true },
   ];
   protected readonly pageTitle = computed(
     () =>

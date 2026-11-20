@@ -1,0 +1,52 @@
+<div class="demo-page">
+  <header class="demo-heading">
+    <div>
+      <p class="demo-kicker">Planificación diaria</p>
+      <h1>Obras y trabajos</h1>
+      <p>Tu agenda de instalaciones, con el progreso y la próxima visita siempre visibles.</p>
+    </div>
+    <span class="demo-badge">Datos de demostración</span>
+  </header>
+  @if (notice()) {
+    <div class="demo-note" role="status">✓ {{ notice() }}</div>
+  }
+  <div class="demo-toolbar">
+    <input aria-label="Buscar obras" placeholder="Buscar obra o cliente…" /><select
+      aria-label="Estado"
+      [value]="filter()"
+      (change)="setFilter($event)"
+    >
+      <option value="ALL">Todas</option>
+      <option value="ACTIVE">En curso</option>
+      <option value="PENDING">Pendientes</option>
+      <option value="DONE">Terminadas</option>
+    </select>
+  </div>
+  <section class="works-grid">
+    @for (work of works(); track work.id) {
+      <article class="demo-card work-card">
+        <div class="work-top">
+          <span class="work-icon">⚡</span
+          ><span
+            class="demo-status"
+            [class.active]="work.status === 'ACTIVE'"
+            [class.pending]="work.status === 'PENDING'"
+            [class.done]="work.status === 'DONE'"
+            >{{ label(work.status) }}</span
+          >
+        </div>
+        <h2>{{ work.title }}</h2>
+        <p class="client">{{ work.client }}</p>
+        <p class="meta">⌖ {{ work.location }}</p>
+        <p class="meta">◷ {{ work.date }}</p>
+        <div class="progress-label">
+          <span>Progreso</span><b>{{ work.progress }}%</b>
+        </div>
+        <div class="demo-progress"><span [style.width.%]="work.progress"></span></div>
+        <button class="demo-button secondary" type="button" (click)="showPlanning(work.title)">
+          Ver planificación
+        </button>
+      </article>
+    }
+  </section>
+</div>

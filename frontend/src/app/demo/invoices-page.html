@@ -1,0 +1,98 @@
+<div class="demo-page">
+  <header class="demo-heading">
+    <div>
+      <p class="demo-kicker">Cobros y facturación</p>
+      <h1>Facturas</h1>
+      <p>Encuentra rápidamente qué está cobrado y qué necesita seguimiento.</p>
+    </div>
+    <a class="demo-button" routerLink="/presupuestos">＋ Crear desde presupuesto</a>
+  </header>
+  <div class="demo-note">
+    ✦ Archivo ficticio para la presentación. Las facturas creadas desde presupuestos y sus PDF son
+    funcionales en el área comercial.
+  </div>
+  <div class="invoice-summary">
+    <article>
+      <span>Pendiente de cobro</span><strong>{{ money(5907.22) }}</strong
+      ><small>2 facturas</small>
+    </article>
+    <article class="warning">
+      <span>Vencido</span><strong>{{ money(968) }}</strong
+      ><small>Requiere seguimiento</small>
+    </article>
+  </div>
+  <div class="demo-toolbar">
+    <input
+      aria-label="Buscar facturas"
+      placeholder="Buscar nº o cliente…"
+      [value]="query()"
+      (input)="search($event)"
+    /><select aria-label="Filtrar estado" [value]="filter()" (change)="setFilter($event)">
+      <option value="ALL">Todas</option>
+      <option value="PENDING">Pendientes</option>
+      <option value="OVERDUE">Vencidas</option>
+      <option value="PAID">Pagadas</option>
+    </select>
+  </div>
+  <section class="invoice-list">
+    @for (invoice of invoices(); track invoice.id) {
+      <button class="demo-card invoice-row" type="button" (click)="selected.set(invoice)">
+        <span class="invoice-icon">▤</span
+        ><span class="invoice-main"
+          ><strong>{{ invoice.number }}</strong
+          ><small>{{ invoice.client }} · {{ invoice.date }}</small></span
+        ><span
+          class="demo-status"
+          [class.paid]="invoice.status === 'PAID'"
+          [class.pending]="invoice.status === 'PENDING'"
+          [class.overdue]="invoice.status === 'OVERDUE'"
+          >{{ label(invoice.status) }}</span
+        ><b>{{ money(invoice.amount) }}</b
+        ><i>›</i>
+      </button>
+    } @empty {
+      <p class="demo-empty">No hay facturas con estos filtros.</p>
+    }
+  </section>
+  @if (selected(); as invoice) {
+    <button
+      class="drawer-backdrop"
+      type="button"
+      aria-label="Cerrar"
+      (click)="selected.set(null)"
+    ></button>
+    <aside class="invoice-drawer">
+      <button class="close" type="button" (click)="selected.set(null)">×</button
+      ><span
+        class="demo-status"
+        [class.paid]="invoice.status === 'PAID'"
+        [class.pending]="invoice.status === 'PENDING'"
+        [class.overdue]="invoice.status === 'OVERDUE'"
+        >{{ label(invoice.status) }}</span
+      >
+      <h2>{{ invoice.number }}</h2>
+      <p>{{ invoice.client }}</p>
+      <div class="total">
+        <span>Total</span><strong>{{ money(invoice.amount) }}</strong>
+      </div>
+      <dl>
+        <div>
+          <dt>Concepto</dt>
+          <dd>{{ invoice.concept }}</dd>
+        </div>
+        <div>
+          <dt>Emisión</dt>
+          <dd>{{ invoice.date }}</dd>
+        </div>
+        <div>
+          <dt>Vencimiento</dt>
+          <dd>{{ invoice.due }}</dd>
+        </div>
+      </dl>
+      <a class="demo-button" routerLink="/gestion">Abrir facturación real y PDF</a>
+      <p class="pdf-note">
+        El PDF descargable se genera para las facturas reales del área comercial.
+      </p>
+    </aside>
+  }
+</div>

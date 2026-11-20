@@ -1,0 +1,30 @@
+<div class="demo-page">
+  <header class="demo-heading">
+    <div>
+      <p class="demo-kicker">Materiales</p>
+      <h1>Inventario móvil</h1>
+      <p>Una vista rápida del material disponible antes de salir hacia la obra.</p>
+    </div>
+    <span class="demo-badge">Vista preliminar</span>
+  </header>
+  <div class="demo-note">
+    ✦ Pantalla demostrativa con datos locales. El control completo de entradas y salidas se
+    desarrollará en una fase posterior.
+  </div>
+  <section class="stock-grid">
+    @for (item of materials; track item.sku) {
+      <article class="demo-card stock-card">
+        <span class="material-icon">▦</span>
+        <div>
+          <strong>{{ item.name }}</strong
+          ><small>{{ item.sku }}</small>
+        </div>
+        <div class="stock" [class.low]="low(item.stock, item.min)">
+          <b>{{ item.stock }}</b
+          ><span>{{ item.unit }}</span
+          ><small>{{ stockLabel(item.stock, item.min) }}</small>
+        </div>
+      </article>
+    }
+  </section>
+</div>

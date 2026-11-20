@@ -1,11 +1,14 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { EtlExecutionHistory } from '../execution-history/etl-execution-history';
+import { DEMO_WORKS, money } from '../demo/demo-data';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, EtlExecutionHistory],
+  imports: [RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard {}
+export class Dashboard {
+  protected readonly works = DEMO_WORKS.slice(0, 3);
+  protected readonly money = money;
+}

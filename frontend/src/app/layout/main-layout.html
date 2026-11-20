@@ -3,8 +3,8 @@
 
   <aside class="sidebar" [class.sidebar-open]="sidebarOpen()" aria-label="Navegación principal">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true">N</span>
-      <span><strong>Nexo</strong><small>ERP para pymes</small></span>
+      <span class="brand-mark" aria-hidden="true">⚡</span>
+      <span><strong>Voltia</strong><small>Gestión para instaladores</small></span>
       <button class="close-menu" type="button" aria-label="Cerrar menú" (click)="closeSidebar()">
         ×
       </button>
@@ -30,7 +30,7 @@
 
     <div class="sidebar-footer">
       <span class="status-dot" aria-hidden="true"></span>
-      <span><strong>Versión inicial</strong><small>Módulos en desarrollo</small></span>
+      <span><strong>Demo comercial</strong><small>Entorno de presentación</small></span>
     </div>
   </aside>
 
@@ -56,7 +56,7 @@
           <span></span><span></span><span></span>
         </button>
         <div>
-          <span class="topbar-context">Nexo ERP</span>
+          <span class="topbar-context">Voltia · Demo electricista</span>
           <strong>{{ pageTitle() }}</strong>
         </div>
       </div>
@@ -95,5 +95,12 @@
     <main id="main-content" class="content" tabindex="-1">
       <router-outlet />
     </main>
+    <nav class="mobile-navigation" aria-label="Navegación móvil">
+      <a routerLink="/dashboard" routerLinkActive="active"><span>⌂</span>Inicio</a>
+      <a routerLink="/obras" routerLinkActive="active"><span>⚡</span>Obras</a>
+      <a routerLink="/clientes" routerLinkActive="active"><span>♙</span>Clientes</a>
+      <a routerLink="/facturas" routerLinkActive="active"><span>▤</span>Facturas</a>
+      <a routerLink="/asistente-ia" routerLinkActive="active"><span>✦</span>Asistente</a>
+    </nav>
   </div>
 </div>

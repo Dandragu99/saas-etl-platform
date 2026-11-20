@@ -40,9 +40,9 @@ export const routes: Routes = [
         loadComponent: () => import('./products/products').then((module) => module.Products),
       },
       {
-        path: 'inventario',
-        title: 'Inventario | Nexo ERP',
-        data: { pageTitle: 'Inventario' },
+        path: 'inventario-operativo',
+        title: 'Inventario operativo | Nexo ERP',
+        data: { pageTitle: 'Inventario operativo' },
         loadComponent: () => import('./inventory/inventory').then((module) => module.Inventory),
       },
       {
@@ -52,8 +52,38 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./business/business-workspace').then((module) => module.BusinessWorkspace),
       },
-      { path: 'clientes', pathMatch: 'full', redirectTo: 'gestion' },
-      { path: 'ventas', pathMatch: 'full', redirectTo: 'gestion' },
+      {
+        path: 'clientes',
+        title: 'Clientes | Voltia',
+        data: { pageTitle: 'Clientes' },
+        loadComponent: () => import('./demo/clients-page').then((module) => module.ClientsPage),
+      },
+      {
+        path: 'obras',
+        title: 'Obras | Voltia',
+        data: { pageTitle: 'Obras' },
+        loadComponent: () => import('./demo/works-page').then((module) => module.WorksPage),
+      },
+      {
+        path: 'facturas',
+        title: 'Facturas | Voltia',
+        data: { pageTitle: 'Facturas' },
+        loadComponent: () => import('./demo/invoices-page').then((module) => module.InvoicesPage),
+      },
+      { path: 'presupuestos', pathMatch: 'full', redirectTo: 'gestion' },
+      { path: 'ventas', pathMatch: 'full', redirectTo: 'facturas' },
+      {
+        path: 'inventario',
+        title: 'Inventario | Voltia',
+        data: { pageTitle: 'Inventario' },
+        loadComponent: () => import('./demo/inventory-page').then((module) => module.InventoryPage),
+      },
+      {
+        path: 'asistente-ia',
+        title: 'Asistente | Voltia',
+        data: { pageTitle: 'Asistente IA' },
+        loadComponent: () => import('./demo/assistant-page').then((module) => module.AssistantPage),
+      },
       ...comingSoonRoutes(),
     ],
   },
@@ -71,11 +101,6 @@ function comingSoonRoutes(): Routes {
       path: 'gastos',
       title: 'Gastos',
       description: 'Registra y clasifica los gastos de tu empresa.',
-    },
-    {
-      path: 'asistente-ia',
-      title: 'Asistente IA',
-      description: 'Obtén ayuda contextual para tus tareas de gestión.',
     },
   ] as const;
 

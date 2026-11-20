@@ -1,0 +1,126 @@
+.client-search {
+  margin-top: 1rem;
+}
+.client-grid {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+.client-card {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e0e9ed;
+  text-align: left;
+  cursor: pointer;
+}
+.client-card:hover {
+  border-color: #8fc7ca;
+  box-shadow: 0 10px 30px #0e304012;
+}
+.avatar {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(145deg, #0c415d, #07858b);
+  font-weight: 850;
+}
+.avatar.large {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.2rem;
+}
+.client-main {
+  display: grid;
+  gap: 0.18rem;
+}
+.client-main small {
+  color: #758592;
+}
+.client-main > span {
+  color: #087c85;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+.amount {
+  display: grid;
+  text-align: right;
+  font-weight: 850;
+}
+.amount small {
+  color: #7a8993;
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+.drawer-backdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  border: 0;
+  background: #07182788;
+}
+.client-drawer {
+  position: fixed;
+  z-index: 41;
+  top: 0;
+  right: 0;
+  width: min(92vw, 25rem);
+  height: 100vh;
+  padding: 2rem;
+  background: #fff;
+  box-shadow: -20px 0 50px #061a2940;
+}
+.client-drawer .close {
+  float: right;
+  border: 0;
+  background: none;
+  font-size: 1.8rem;
+}
+.client-drawer h2 {
+  margin: 0.25rem 0 1.5rem;
+}
+.client-drawer dl {
+  display: grid;
+  gap: 1rem;
+}
+.client-drawer dl div {
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid #e7edef;
+}
+.client-drawer dt {
+  color: #748591;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+.client-drawer dd {
+  margin: 0.25rem 0 0;
+  font-weight: 700;
+}
+.client-drawer .demo-button {
+  width: 100%;
+  margin-top: 1rem;
+}
+@media (max-width: 640px) {
+  .client-card {
+    grid-template-columns: auto 1fr auto;
+    gap: 0.7rem;
+  }
+  .client-card .amount {
+    display: none;
+  }
+  .client-drawer {
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    max-height: 88vh;
+    border-radius: 22px 22px 0 0;
+    padding: 1.4rem;
+  }
+}

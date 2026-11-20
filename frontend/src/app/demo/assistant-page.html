@@ -1,0 +1,37 @@
+<div class="assistant-shell">
+  <header>
+    <span class="ai-mark">✦</span>
+    <div>
+      <p class="demo-kicker">Asistente de demostración</p>
+      <h1>Nexo Copilot</h1>
+      <span><i></i> Disponible · Respuestas simuladas</span>
+    </div>
+  </header>
+  <section class="chat" aria-live="polite">
+    @for (message of messages(); track $index) {
+      <div class="message" [class.user]="message.from === 'user'">
+        <span>{{ message.from === 'assistant' ? '✦' : 'Tú' }}</span>
+        <p>{{ message.text }}</p>
+      </div>
+    }
+  </section>
+  <section class="suggestions">
+    <p>Prueba una pregunta</p>
+    <div>
+      @for (question of suggestions; track question) {
+        <button type="button" (click)="ask(question)">{{ question }}</button>
+      }
+    </div>
+  </section>
+  <form (submit)="$event.preventDefault(); submit(chatInput)">
+    <input
+      #chatInput
+      aria-label="Escribe tu pregunta"
+      placeholder="Pregunta sobre tu negocio…"
+    /><button type="submit" aria-label="Enviar">➤</button>
+  </form>
+  <small
+    >El asistente usa respuestas preparadas y no está conectado a una IA ni toma decisiones
+    reales.</small
+  >
+</div>

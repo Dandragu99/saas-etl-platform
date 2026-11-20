@@ -1,0 +1,149 @@
+.invoice-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.invoice-summary article {
+  display: grid;
+  padding: 1rem 1.2rem;
+  border: 1px solid #dbe7e9;
+  border-radius: 15px;
+  background: #fff;
+}
+.invoice-summary span,
+.invoice-summary small {
+  color: #728390;
+  font-size: 0.7rem;
+}
+.invoice-summary strong {
+  margin: 0.25rem 0;
+  font-size: 1.35rem;
+}
+.invoice-summary .warning {
+  border-color: #f2d8ca;
+  background: #fffaf5;
+}
+.invoice-list {
+  display: grid;
+  gap: 0.55rem;
+}
+.invoice-row {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+.invoice-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 10px;
+  color: #087c85;
+  background: #e6f5f5;
+}
+.invoice-main {
+  display: grid;
+  gap: 0.15rem;
+}
+.invoice-main small {
+  color: #758692;
+}
+.invoice-row i {
+  font-style: normal;
+}
+.drawer-backdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  border: 0;
+  background: #07182788;
+}
+.invoice-drawer {
+  position: fixed;
+  z-index: 41;
+  top: 0;
+  right: 0;
+  width: min(92vw, 27rem);
+  height: 100vh;
+  padding: 2rem;
+  background: #fff;
+  box-shadow: -20px 0 50px #061a2940;
+}
+.close {
+  float: right;
+  border: 0;
+  background: none;
+  font-size: 1.8rem;
+}
+.invoice-drawer h2 {
+  margin: 1rem 0 0.2rem;
+}
+.invoice-drawer > p {
+  color: #71838e;
+}
+.total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-radius: 12px;
+  background: #08263e;
+  color: #fff;
+}
+.total strong {
+  font-size: 1.5rem;
+}
+.invoice-drawer dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid #e7edef;
+}
+.invoice-drawer dt {
+  color: #71838e;
+}
+.invoice-drawer dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+.invoice-drawer .demo-button {
+  width: 100%;
+  margin-top: 1.5rem;
+}
+.pdf-note {
+  text-align: center;
+  font-size: 0.68rem;
+}
+@media (max-width: 640px) {
+  .invoice-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+  .invoice-row {
+    grid-template-columns: auto 1fr auto;
+  }
+  .invoice-row .demo-status,
+  .invoice-row i {
+    display: none;
+  }
+  .invoice-row > b {
+    grid-column: 2;
+  }
+  .invoice-drawer {
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    max-height: 90vh;
+    border-radius: 22px 22px 0 0;
+    padding: 1.4rem;
+  }
+}

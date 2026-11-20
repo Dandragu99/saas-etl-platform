@@ -38,14 +38,14 @@ describe('MainLayout', () => {
     );
 
     expect(links.map((link) => link.textContent?.trim())).toEqual([
-      'Dashboard',
-      'DocumentosPronto',
-      'Transformaciones',
-      'Productos',
+      'Inicio',
+      'Obras',
+      'Clientes',
+      'Presupuestos',
+      'Facturas',
       'Inventario',
-      'Clientes y ventas',
-      'GastosPronto',
-      'Asistente IAPronto',
+      'Asistente IA',
+      'Herramientas Nexo',
     ]);
   });
 
@@ -74,6 +74,6 @@ describe('MainLayout', () => {
 
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('.topbar-title strong')?.textContent,
-    ).toContain('Transformaciones');
+    ).toContain('Herramientas Nexo');
   });
 });

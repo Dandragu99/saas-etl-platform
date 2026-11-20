@@ -1,0 +1,54 @@
+.stock-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.stock-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+.material-icon {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  place-items: center;
+  border-radius: 11px;
+  color: #0b7280;
+  background: #e5f5f6;
+}
+.stock-card > div:nth-child(2) {
+  display: grid;
+  gap: 0.18rem;
+}
+.stock-card small {
+  color: #758591;
+  font-size: 0.68rem;
+}
+.stock {
+  text-align: right;
+}
+.stock b {
+  font-size: 1.25rem;
+}
+.stock span {
+  margin-left: 0.2rem;
+  color: #758591;
+  font-size: 0.68rem;
+}
+.stock small {
+  display: block;
+  color: #198064;
+}
+.stock.low b,
+.stock.low small {
+  color: #bd4a37;
+}
+@media (max-width: 700px) {
+  .stock-grid {
+    grid-template-columns: 1fr;
+  }
+}

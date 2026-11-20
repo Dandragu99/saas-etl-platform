@@ -1,54 +1,107 @@
-<section class="dashboard-heading" aria-labelledby="dashboard-title">
-  <div>
-    <p class="eyebrow">Visión general</p>
-    <h1 id="dashboard-title">Tu actividad, de un vistazo</h1>
-    <p>
-      Consulta el estado real de tus procesos ETL y accede rápidamente a las herramientas
-      disponibles.
-    </p>
-  </div>
-  <a class="primary-action" routerLink="/transformaciones">
-    <span aria-hidden="true">＋</span>Nueva transformación
-  </a>
-</section>
-
-<section class="quick-access" aria-labelledby="quick-access-title">
-  <div class="section-heading">
+<div class="demo-page dashboard">
+  <header class="welcome">
     <div>
-      <p class="eyebrow">Accesos rápidos</p>
-      <h2 id="quick-access-title">Continúa tu trabajo</h2>
+      <p class="demo-kicker">Viernes, 20 de noviembre</p>
+      <h1>Buenos días, David <span>👋</span></h1>
+      <p>Este es el estado de tu negocio para hoy.</p>
     </div>
-    <span>Las funciones disponibles usan datos reales del sistema</span>
+    <a class="demo-button" routerLink="/presupuestos">＋ Nuevo presupuesto</a>
+  </header>
+  <div class="demo-note mobile-note">
+    ✦ Vista comercial con datos ficticios realistas. Clientes, presupuestos, facturas y PDF conectan
+    con el módulo funcional.
   </div>
-
-  <div class="access-grid">
-    <a class="access-card available" routerLink="/transformaciones">
-      <span class="access-icon transform-icon" aria-hidden="true">↗</span>
-      <span
-        ><strong>Transformar un CSV</strong><small>Previsualiza, procesa y descarga</small></span
-      >
-      <span class="arrow" aria-hidden="true">→</span>
-    </a>
-    <a class="access-card" routerLink="/documentos">
-      <span class="access-icon" aria-hidden="true">▤</span>
-      <span><strong>Documentos</strong><small>Módulo en preparación</small></span>
-      <span class="soon">Próximamente</span>
-    </a>
-    <a class="access-card" routerLink="/asistente-ia">
-      <span class="access-icon assistant-icon" aria-hidden="true">✦</span>
-      <span><strong>Asistente IA</strong><small>Módulo en preparación</small></span>
-      <span class="soon">Próximamente</span>
-    </a>
-  </div>
-</section>
-
-<section class="activity-section" aria-labelledby="activity-title">
-  <div class="section-heading activity-heading">
-    <div>
-      <p class="eyebrow">Datos operativos</p>
-      <h2 id="activity-title">Actividad reciente</h2>
+  <section class="stats">
+    <a routerLink="/facturas"
+      ><span class="stat-icon money">€</span>
+      <div>
+        <small>Facturación mensual</small><strong>{{ money(8420) }}</strong
+        ><em>↗ 12% vs. mes anterior</em>
+      </div></a
+    ><a routerLink="/presupuestos"
+      ><span class="stat-icon quote">▤</span>
+      <div>
+        <small>Presupuestos pendientes</small><strong>5</strong><em>2 por responder hoy</em>
+      </div></a
+    ><a routerLink="/facturas"
+      ><span class="stat-icon invoice">◷</span>
+      <div>
+        <small>Facturas por cobrar</small><strong>{{ money(6875.22) }}</strong
+        ><em class="warn">1 factura vencida</em>
+      </div></a
+    ><a routerLink="/obras"
+      ><span class="stat-icon work">⚡</span>
+      <div><small>Obras activas</small><strong>4</strong><em>2 visitas programadas</em></div></a
+    >
+  </section>
+  <section class="dashboard-grid">
+    <article class="demo-card chart-card">
+      <div class="card-heading">
+        <div>
+          <p class="demo-kicker">Ingresos</p>
+          <h2>Facturación 2026</h2>
+        </div>
+        <span class="demo-badge">Últimos 6 meses</span>
+      </div>
+      <div class="chart">
+        <div style="--h: 42%"><span>4,1k</span><i></i><small>Jun</small></div>
+        <div style="--h: 58%"><span>5,7k</span><i></i><small>Jul</small></div>
+        <div style="--h: 50%"><span>4,9k</span><i></i><small>Ago</small></div>
+        <div style="--h: 73%"><span>7,2k</span><i></i><small>Sep</small></div>
+        <div style="--h: 65%"><span>6,4k</span><i></i><small>Oct</small></div>
+        <div class="current" style="--h: 86%"><span>8,4k</span><i></i><small>Nov</small></div>
+      </div>
+    </article>
+    <article class="demo-card today-card">
+      <div class="card-heading">
+        <div>
+          <p class="demo-kicker">Agenda</p>
+          <h2>Trabajos próximos</h2>
+        </div>
+        <a routerLink="/obras">Ver todos</a>
+      </div>
+      @for (work of works; track work.id) {
+        <a class="today-item" routerLink="/obras"
+          ><span>{{ work.date.split(' · ')[0] }}</span>
+          <div>
+            <strong>{{ work.title }}</strong
+            ><small>{{ work.client }} · {{ work.location }}</small>
+          </div>
+          <b>›</b></a
+        >
+      }
+    </article>
+  </section>
+  <section class="activity">
+    <div class="section-title">
+      <div>
+        <p class="demo-kicker">Últimos movimientos</p>
+        <h2>Actividad reciente</h2>
+      </div>
+      <a routerLink="/facturas">Ver archivo</a>
     </div>
-    <span>Datos de la empresa activa</span>
-  </div>
-  <app-etl-execution-history />
-</section>
+    <div class="demo-card activity-list">
+      <article>
+        <span class="activity-icon paid">✓</span>
+        <div>
+          <strong>Factura FAC-2026-0041 cobrada</strong
+          ><small>Clínica Dental Nova · Hace 45 min</small>
+        </div>
+        <b>1.894,44 €</b>
+      </article>
+      <article>
+        <span class="activity-icon quote">▤</span>
+        <div>
+          <strong>Presupuesto enviado a Reformas Martínez</strong
+          ><small>Instalación vivienda · Ayer</small>
+        </div>
+        <b>3.120,80 €</b>
+      </article>
+      <article>
+        <span class="activity-icon work">⚡</span>
+        <div><strong>Obra actualizada al 68%</strong><small>C/ Alcalá 214 · Ayer</small></div>
+        <b>En curso</b>
+      </article>
+    </div>
+  </section>
+</div>

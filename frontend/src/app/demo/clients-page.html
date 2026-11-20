@@ -1,0 +1,68 @@
+<div class="demo-page">
+  <header class="demo-heading">
+    <div>
+      <p class="demo-kicker">Cartera de clientes</p>
+      <h1>Clientes</h1>
+      <p>Contactos, obras y facturación reunidos en una vista diseñada para consultar en ruta.</p>
+    </div>
+    <a class="demo-button" routerLink="/gestion">＋ Nuevo cliente</a>
+  </header>
+  <div class="demo-note">
+    ✦ Los perfiles mostrados son ficticios. La creación y edición de clientes desde “Nuevo cliente”
+    sí utiliza el backend real.
+  </div>
+  <div class="demo-toolbar client-search">
+    <input
+      aria-label="Buscar clientes"
+      placeholder="Buscar por cliente o contacto…"
+      [value]="query()"
+      (input)="search($event)"
+    />
+  </div>
+  <section class="client-grid">
+    @for (client of clients(); track client.id) {
+      <button class="demo-card client-card" type="button" (click)="selected.set(client)">
+        <span class="avatar">{{ client.initials }}</span
+        ><span class="client-main"
+          ><strong>{{ client.name }}</strong
+          ><small>{{ client.contact }} · {{ client.phone }}</small
+          ><span>{{ client.activeWork }}</span></span
+        ><span class="amount">{{ money(client.billing) }}<small>facturado</small></span
+        ><b>›</b>
+      </button>
+    }
+  </section>
+  @if (selected(); as client) {
+    <button
+      class="drawer-backdrop"
+      type="button"
+      aria-label="Cerrar detalle"
+      (click)="selected.set(null)"
+    ></button>
+    <aside class="client-drawer">
+      <button class="close" type="button" (click)="selected.set(null)">×</button
+      ><span class="avatar large">{{ client.initials }}</span>
+      <p class="demo-kicker">Ficha de cliente · Demo</p>
+      <h2>{{ client.name }}</h2>
+      <dl>
+        <div>
+          <dt>Contacto</dt>
+          <dd>{{ client.contact }}</dd>
+        </div>
+        <div>
+          <dt>Teléfono</dt>
+          <dd>{{ client.phone }}</dd>
+        </div>
+        <div>
+          <dt>Dirección</dt>
+          <dd>{{ client.address }}</dd>
+        </div>
+        <div>
+          <dt>Trabajo actual</dt>
+          <dd>{{ client.activeWork }}</dd>
+        </div>
+      </dl>
+      <a class="demo-button" routerLink="/presupuestos">Preparar presupuesto</a>
+    </aside>
+  }
+</div>

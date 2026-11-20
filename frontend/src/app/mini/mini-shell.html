@@ -1,0 +1,28 @@
+<div class="mini-app">
+  <header class="mini-header">
+    <a routerLink="/mini" class="mini-brand"
+      ><span>⚡</span>
+      <div><strong>Voltia Mini</strong><small>Todo tu negocio, en el bolsillo</small></div></a
+    ><a routerLink="/mini/ajustes" class="settings-link" aria-label="Ajustes">⚙</a>
+  </header>
+  <main>
+    @if (store.ready()) {
+      <router-outlet />
+    } @else {
+      <div class="mini-loading">
+        <span>⚡</span>
+        <p>Preparando tus datos locales…</p>
+      </div>
+    }
+  </main>
+  <a class="floating-action" routerLink="/mini/presupuestos/nuevo" aria-label="Crear presupuesto"
+    >＋</a
+  >
+  <nav class="mini-nav" aria-label="Navegación de Voltia Mini">
+    <a routerLink="/mini" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active"
+      ><span>⌂</span>Inicio</a
+    ><a routerLink="/mini/clientes" routerLinkActive="active"><span>♙</span>Clientes</a
+    ><a routerLink="/mini/presupuestos" routerLinkActive="active"><span>▤</span>Presupuestos</a
+    ><a routerLink="/mini/trabajos" routerLinkActive="active"><span>⚡</span>Trabajos</a>
+  </nav>
+</div>

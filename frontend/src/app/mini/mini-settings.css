@@ -1,0 +1,65 @@
+.page-heading p {
+  margin: 0;
+  color: #07808a;
+  font-size: 0.6rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+.page-heading h1 {
+  margin: 0.2rem 0;
+  font-size: 1.65rem;
+}
+.page-heading span {
+  color: #72848e;
+  font-size: 0.68rem;
+}
+form {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #dce7e9;
+  border-radius: 18px;
+  background: #fff;
+}
+form label {
+  display: grid;
+  gap: 0.3rem;
+  color: #526975;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+form input {
+  min-height: 3rem;
+  border: 1px solid #d3e0e3;
+  border-radius: 11px;
+  padding: 0.7rem;
+}
+form > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+form small {
+  color: #84939a;
+  font-weight: 500;
+}
+form img {
+  max-width: 8rem;
+  max-height: 5rem;
+  object-fit: contain;
+}
+form > button {
+  min-height: 3.2rem;
+  border: 0;
+  border-radius: 12px;
+  color: #09283e;
+  background: #f1d239;
+  font-weight: 900;
+}
+.saved {
+  margin: 0;
+  text-align: center;
+  color: #15715a;
+  font-size: 0.7rem;
+}

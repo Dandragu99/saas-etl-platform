@@ -1,0 +1,86 @@
+<header class="form-heading">
+  <p>NUEVO DOCUMENTO</p>
+  <h1>Crear presupuesto</h1>
+  <span>Se guardará únicamente en este dispositivo.</span>
+</header>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <section class="form-card">
+    <label
+      >Cliente *<select formControlName="clientId">
+        <option value="">Selecciona un cliente</option>
+        @for (client of store.clients(); track client.id) {
+          <option [value]="client.id">{{ client.name }}</option>
+        }
+      </select></label
+    >
+    @if (store.clients().length === 0) {
+      <p class="warning">Crea un cliente antes de preparar el presupuesto.</p>
+    }
+  </section>
+  <section class="form-card">
+    <header>
+      <div>
+        <p>CONCEPTOS</p>
+        <h2>Materiales y trabajo</h2>
+      </div>
+    </header>
+    <div formArrayName="lines" class="lines">
+      @for (line of lines.controls; track $index) {
+        <div class="quote-line" [formGroupName]="$index">
+          <label
+            >Descripción<input
+              formControlName="description"
+              placeholder="Cable, mecanismo, instalación…"
+          /></label>
+          <div>
+            <label
+              >Cantidad<input
+                formControlName="quantity"
+                type="number"
+                step="0.01"
+                inputmode="decimal" /></label
+            ><label
+              >Precio €<input
+                formControlName="unitPrice"
+                type="number"
+                step="0.01"
+                inputmode="decimal" /></label
+            ><button type="button" aria-label="Eliminar concepto" (click)="removeLine($index)">
+              ×
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+    <div class="add-actions">
+      <button type="button" (click)="addLine('MATERIAL')">＋ Material</button
+      ><button type="button" (click)="addLine('LABOR')">＋ Mano de obra</button>
+    </div>
+  </section>
+  <section class="form-card">
+    <label>IVA %<input formControlName="taxRate" type="number" inputmode="decimal" /></label
+    ><label
+      >Notas<textarea
+        formControlName="notes"
+        rows="2"
+        placeholder="Condiciones, plazo estimado…"
+      ></textarea>
+    </label>
+  </section>
+  <section class="totals">
+    <div>
+      <span>Subtotal</span><b>{{ money(subtotal()) }}</b>
+    </div>
+    <div>
+      <span>IVA {{ form.controls.taxRate.value }}%</span><b>{{ money(tax()) }}</b>
+    </div>
+    <div>
+      <span>Total</span><strong>{{ money(total()) }}</strong>
+    </div>
+  </section>
+  @if (form.touched && form.invalid) {
+    <p class="form-error">Revisa el cliente, las descripciones y los importes.</p>
+  }
+  <button class="submit" type="submit">Guardar presupuesto</button>
+  <p class="fiscal">Documento de ejemplo no válido para emisión fiscal.</p>
+</form>

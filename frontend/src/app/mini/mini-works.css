@@ -1,0 +1,95 @@
+.page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+}
+.page-heading p {
+  margin: 0;
+  color: #07808a;
+  font-size: 0.6rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+.page-heading h1 {
+  margin: 0.2rem 0 0;
+  font-size: 1.65rem;
+}
+.page-heading select {
+  min-height: 2.7rem;
+  border: 1px solid #d5e2e5;
+  border-radius: 11px;
+  padding: 0.5rem;
+  background: #fff;
+}
+.work-list {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+.work-list article {
+  padding: 1rem;
+  border: 1px solid #dce7e9;
+  border-radius: 17px;
+  background: #fff;
+}
+.work-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.work-head > span {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border-radius: 11px;
+  color: #09273d;
+  background: #f1d239;
+}
+.work-head em {
+  padding: 0.25rem 0.5rem;
+  border-radius: 99px;
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 850;
+}
+.work-head em.pending {
+  color: #82610d;
+  background: #fff2c5;
+}
+.work-head em.active {
+  color: #08727a;
+  background: #e2f3f4;
+}
+.work-head em.done {
+  color: #176f56;
+  background: #e1f4eb;
+}
+.work-list h2 {
+  margin: 0.8rem 0 0.2rem;
+  font-size: 0.95rem;
+}
+.work-list p {
+  margin: 0;
+  color: #087780;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.work-list small {
+  display: block;
+  margin: 0.55rem 0;
+  color: #778894;
+}
+.work-list button {
+  width: 100%;
+  min-height: 2.7rem;
+  border: 1px solid #cbdde0;
+  border-radius: 11px;
+  color: #08747c;
+  background: #fff;
+  font-weight: 800;
+}
+.empty {
+  text-align: center;
+  color: #71838e;
+}

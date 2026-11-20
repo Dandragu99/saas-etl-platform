@@ -1,0 +1,146 @@
+.home-hero {
+  padding: 1.35rem;
+  border-radius: 22px;
+  color: #fff;
+  background: radial-gradient(circle at 90% 10%, #147e86, #0a3850 42%, #071d34);
+  box-shadow: 0 18px 40px #082b3c24;
+}
+.home-hero p {
+  margin: 0;
+  color: #5ed0ca;
+  font-size: 0.63rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+.home-hero h1 {
+  margin: 0.45rem 0 0.1rem;
+  font-size: 1.85rem;
+  letter-spacing: -0.05em;
+}
+.home-hero > span {
+  color: #c3d6dd;
+  font-size: 0.75rem;
+}
+.home-hero a {
+  display: flex;
+  margin-top: 1.3rem;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  color: #09243a;
+  background: #f2d43a;
+  font-weight: 850;
+  text-decoration: none;
+}
+.home-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  margin-top: 0.8rem;
+}
+.home-stats a {
+  display: grid;
+  padding: 1rem;
+  border: 1px solid #dce7e9;
+  border-radius: 17px;
+  background: #fff;
+  text-decoration: none;
+}
+.home-stats span {
+  color: #71838e;
+  font-size: 0.66rem;
+}
+.home-stats strong {
+  margin: 0.25rem 0;
+  font-size: 1.45rem;
+}
+.home-stats small {
+  color: #07808a;
+  font-size: 0.62rem;
+}
+.mini-section {
+  margin-top: 1.4rem;
+}
+.mini-section header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+.mini-section header p {
+  margin: 0;
+  color: #07808a;
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+}
+.mini-section h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+}
+.mini-section header > a {
+  color: #087780;
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+.home-list {
+  overflow: hidden;
+  border: 1px solid #dce7e9;
+  border-radius: 17px;
+  background: #fff;
+}
+.home-list > a {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border-top: 1px solid #e7eef0;
+  text-decoration: none;
+}
+.home-list > a:first-child {
+  border-top: 0;
+}
+.home-list span {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  border-radius: 10px;
+}
+.work-bolt {
+  color: #09283f;
+  background: #f1d43a;
+}
+.doc-icon {
+  color: #087680;
+  background: #e4f4f5;
+}
+.home-list div {
+  display: grid;
+  gap: 0.12rem;
+}
+.home-list strong {
+  font-size: 0.76rem;
+}
+.home-list small {
+  color: #758692;
+  font-size: 0.62rem;
+}
+.home-list > b {
+  font-size: 0.68rem;
+}
+.empty {
+  padding: 1rem;
+  text-align: center;
+  color: #71838e;
+  font-size: 0.75rem;
+}
+.offline-note {
+  margin: 1.2rem 0;
+  text-align: center;
+  color: #69808a;
+  font-size: 0.63rem;
+}

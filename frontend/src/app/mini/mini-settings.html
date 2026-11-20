@@ -1,0 +1,26 @@
+<header class="page-heading">
+  <p>PERSONALIZACIÓN</p>
+  <h1>Datos del negocio</h1>
+  <span>Estos datos aparecerán en los PDF y sólo se guardan en este dispositivo.</span>
+</header>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <label>Nombre comercial *<input formControlName="tradeName" /></label
+  ><label>NIF<input formControlName="taxId" /></label
+  ><label>Dirección<input formControlName="address" /></label>
+  <div>
+    <label>Teléfono<input formControlName="phone" type="tel" /></label
+    ><label>Correo<input formControlName="email" type="email" /></label>
+  </div>
+  <label
+    >Logotipo<input type="file" accept="image/*" (change)="logo($event)" /><small
+      >Se almacena localmente. La primera versión del PDF usa la identidad textual.</small
+    ></label
+  >
+  @if (form.controls.logoDataUrl.value) {
+    <img [src]="form.controls.logoDataUrl.value" alt="Vista previa del logotipo" />
+  }
+  <button type="submit">Guardar ajustes</button>
+  @if (saved()) {
+    <p class="saved">✓ Datos guardados en el dispositivo.</p>
+  }
+</form>

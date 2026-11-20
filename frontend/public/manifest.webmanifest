@@ -1,0 +1,18 @@
+{
+  "name": "Voltia Mini",
+  "short_name": "Voltia",
+  "description": "Gestión móvil offline para electricistas autónomos",
+  "start_url": "/mini",
+  "scope": "/mini/",
+  "display": "standalone",
+  "background_color": "#f1f5f6",
+  "theme_color": "#071f35",
+  "icons": [
+    {
+      "src": "/icons/voltia-mini.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

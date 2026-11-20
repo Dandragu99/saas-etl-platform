@@ -5,6 +5,41 @@ import { authGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'mini',
+    title: 'Voltia Mini',
+    loadComponent: () => import('./mini/mini-shell').then((module) => module.MiniShell),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () => import('./mini/mini-home').then((module) => module.MiniHome),
+      },
+      {
+        path: 'clientes',
+        loadComponent: () => import('./mini/mini-clients').then((module) => module.MiniClients),
+      },
+      {
+        path: 'presupuestos',
+        loadComponent: () => import('./mini/mini-quotes').then((module) => module.MiniQuotes),
+      },
+      {
+        path: 'presupuestos/nuevo',
+        loadComponent: () =>
+          import('./mini/mini-quote-form').then((module) => module.MiniQuoteForm),
+      },
+      { path: 'presupuestos/:id', redirectTo: 'presupuestos' },
+      {
+        path: 'trabajos',
+        loadComponent: () => import('./mini/mini-works').then((module) => module.MiniWorks),
+      },
+      {
+        path: 'ajustes',
+        loadComponent: () =>
+          import('./mini/mini-settings').then((module) => module.MiniSettingsPage),
+      },
+    ],
+  },
+  {
     path: 'login',
     title: 'Iniciar sesión | Nexo ERP',
     loadComponent: () => import('./auth/login/login').then((module) => module.Login),

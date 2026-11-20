@@ -1,0 +1,35 @@
+<header class="page-heading">
+  <div>
+    <p>AGENDA</p>
+    <h1>Trabajos</h1>
+  </div>
+  <select aria-label="Filtrar trabajos" [value]="filter()" (change)="setFilter($event)">
+    <option value="ALL">Todos</option>
+    <option value="PENDING">Pendientes</option>
+    <option value="ACTIVE">En curso</option>
+    <option value="DONE">Finalizados</option>
+  </select>
+</header>
+<section class="work-list">
+  @for (work of works(); track work.id) {
+    <article>
+      <div class="work-head">
+        <span>⚡</span><em [class]="work.status.toLowerCase()">{{ label(work.status) }}</em>
+      </div>
+      <h2>{{ work.title }}</h2>
+      <p>{{ work.clientName }}</p>
+      <small>◷ {{ work.date }}</small
+      ><button type="button" (click)="next(work)">
+        {{
+          work.status === 'PENDING'
+            ? 'Iniciar trabajo'
+            : work.status === 'ACTIVE'
+              ? 'Marcar finalizado'
+              : 'Reabrir trabajo'
+        }}
+      </button>
+    </article>
+  } @empty {
+    <p class="empty">No hay trabajos con este estado.</p>
+  }
+</section>

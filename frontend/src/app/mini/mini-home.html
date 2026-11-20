@@ -1,0 +1,64 @@
+<section class="home-hero">
+  <p>VIERNES, 20 DE NOVIEMBRE</p>
+  <h1>Buenos días 👋</h1>
+  <span>{{ store.settings().tradeName }}</span
+  ><a routerLink="/mini/presupuestos/nuevo">＋ Crear presupuesto</a>
+</section>
+<section class="home-stats">
+  <a routerLink="/mini/trabajos"
+    ><span>Trabajos pendientes</span><strong>{{ store.pendingWorks().length }}</strong
+    ><small>Revisa tu agenda ›</small></a
+  ><a routerLink="/mini/presupuestos"
+    ><span>Presupuestado</span><strong>{{ money(store.quotes()[0]?.total ?? 0) }}</strong
+    ><small>Último documento ›</small></a
+  >
+</section>
+<section class="mini-section">
+  <header>
+    <div>
+      <p>PRÓXIMOS TRABAJOS</p>
+      <h2>Tu agenda</h2>
+    </div>
+    <a routerLink="/mini/trabajos">Ver todos</a>
+  </header>
+  <div class="home-list">
+    @for (work of store.pendingWorks().slice(0, 3); track work.id) {
+      <a routerLink="/mini/trabajos"
+        ><span class="work-bolt">⚡</span>
+        <div>
+          <strong>{{ work.title }}</strong
+          ><small>{{ work.clientName }} · {{ work.date }}</small>
+        </div>
+        <b>›</b></a
+      >
+    } @empty {
+      <p class="empty">No tienes trabajos pendientes.</p>
+    }
+  </div>
+</section>
+<section class="mini-section">
+  <header>
+    <div>
+      <p>DOCUMENTOS RECIENTES</p>
+      <h2>Últimos presupuestos</h2>
+    </div>
+    <a routerLink="/mini/presupuestos">Historial</a>
+  </header>
+  <div class="home-list">
+    @for (quote of store.quotes().slice(0, 3); track quote.id) {
+      <a [routerLink]="['/mini/presupuestos', quote.id]"
+        ><span class="doc-icon">▤</span>
+        <div>
+          <strong>{{ quote.clientName }}</strong
+          ><small>{{ quote.number }} · {{ quote.date }}</small>
+        </div>
+        <b>{{ money(quote.total) }}</b></a
+      >
+    } @empty {
+      <p class="empty">Crea tu primer presupuesto.</p>
+    }
+  </div>
+</section>
+<p class="offline-note">
+  ✓ Tus datos están guardados en este dispositivo y disponibles sin conexión.
+</p>

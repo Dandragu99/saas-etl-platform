@@ -1,0 +1,61 @@
+<header class="page-heading">
+  <div>
+    <p>CONTACTOS</p>
+    <h1>Clientes</h1>
+  </div>
+  <button type="button" (click)="create()">＋ Nuevo</button>
+</header>
+<label class="mini-search"
+  >⌕<input
+    aria-label="Buscar cliente"
+    placeholder="Buscar cliente o teléfono…"
+    [value]="query()"
+    (input)="search($event)"
+/></label>
+<section class="client-list">
+  @for (client of filtered(); track client.id) {
+    <button type="button" (click)="edit(client)">
+      <span>{{ client.name.slice(0, 2).toUpperCase() }}</span>
+      <div>
+        <strong>{{ client.name }}</strong
+        ><small>{{ client.phone || client.email || 'Sin contacto' }}</small
+        ><em>{{ client.address }}</em>
+      </div>
+      <b>›</b>
+    </button>
+  } @empty {
+    <p>No hay clientes con esta búsqueda.</p>
+  }
+</section>
+@if (open()) {
+  <button
+    class="sheet-backdrop"
+    type="button"
+    aria-label="Cerrar"
+    (click)="open.set(false)"
+  ></button>
+  <section class="form-sheet">
+    <header>
+      <div>
+        <p>FICHA LOCAL</p>
+        <h2>{{ editingId() ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
+      </div>
+      <button type="button" (click)="open.set(false)">×</button>
+    </header>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <label>Nombre *<input formControlName="name" placeholder="Nombre o empresa" /></label>
+      <div class="two-fields">
+        <label>NIF<input formControlName="taxId" /></label
+        ><label>Teléfono<input formControlName="phone" type="tel" /></label>
+      </div>
+      <label>Correo<input formControlName="email" type="email" /></label
+      ><label>Dirección<input formControlName="address" /></label>
+      @if (form.controls.name.touched && form.controls.name.invalid) {
+        <small class="error">Introduce el nombre del cliente.</small>
+      }
+      <button class="save-button" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : 'Guardar en el dispositivo' }}
+      </button>
+    </form>
+  </section>
+}

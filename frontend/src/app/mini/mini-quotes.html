@@ -1,0 +1,87 @@
+<header class="page-heading">
+  <div>
+    <p>DOCUMENTOS</p>
+    <h1>Presupuestos</h1>
+  </div>
+  <a routerLink="/mini/presupuestos/nuevo">＋ Crear</a>
+</header>
+<div class="filters">
+  <input
+    aria-label="Buscar por cliente"
+    placeholder="Buscar cliente…"
+    [value]="query()"
+    (input)="search($event)"
+  /><select aria-label="Filtrar estado" [value]="status()" (change)="filter($event)">
+    <option value="ALL">Todos</option>
+    <option value="DRAFT">Borradores</option>
+    <option value="SENT">Enviados</option>
+    <option value="ACCEPTED">Aceptados</option>
+  </select>
+  <input
+    class="date-filter"
+    aria-label="Filtrar por fecha"
+    type="date"
+    [value]="date()"
+    (change)="filterDate($event)"
+  />
+</div>
+<section class="quote-list">
+  @for (quote of filtered(); track quote.id) {
+    <button type="button" (click)="selected.set(quote)">
+      <span class="doc-icon">▤</span>
+      <div>
+        <strong>{{ quote.clientName }}</strong
+        ><small>{{ quote.number }} · {{ quote.date }}</small
+        ><em [class]="quote.status.toLowerCase()">{{ label(quote.status) }}</em>
+      </div>
+      <b>{{ money(quote.total) }}</b>
+    </button>
+  } @empty {
+    <p>No hay presupuestos para estos filtros.</p>
+  }
+</section>
+@if (selected(); as quote) {
+  <button
+    class="sheet-backdrop"
+    type="button"
+    aria-label="Cerrar"
+    (click)="selected.set(null)"
+  ></button>
+  <section class="detail-sheet">
+    <header>
+      <div>
+        <p>DOCUMENTO LOCAL</p>
+        <h2>{{ quote.number }}</h2>
+      </div>
+      <button type="button" (click)="selected.set(null)">×</button>
+    </header>
+    <h3>{{ quote.clientName }}</h3>
+    @for (line of quote.lines; track $index) {
+      <div class="line">
+        <span
+          >{{ line.description
+          }}<small>{{ line.quantity }} × {{ money(line.unitPrice) }}</small></span
+        ><b>{{ money(line.quantity * line.unitPrice) }}</b>
+      </div>
+    }
+    <dl>
+      <div>
+        <dt>Subtotal</dt>
+        <dd>{{ money(quote.subtotal) }}</dd>
+      </div>
+      <div>
+        <dt>IVA {{ quote.taxRate }}%</dt>
+        <dd>{{ money(quote.tax) }}</dd>
+      </div>
+      <div class="total">
+        <dt>Total</dt>
+        <dd>{{ money(quote.total) }}</dd>
+      </div>
+    </dl>
+    <p class="fiscal-warning">Documento de demostración no válido para emisión fiscal.</p>
+    <div class="actions">
+      <button type="button" (click)="download(quote)">↓ Descargar PDF</button
+      ><button type="button" (click)="share(quote)">↗ Compartir</button>
+    </div>
+  </section>
+}

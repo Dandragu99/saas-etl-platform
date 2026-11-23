@@ -29,5 +29,8 @@ describe('MiniShell', () => {
     ).map((item) => item.textContent?.trim());
     expect(labels).toEqual(['⌂Inicio', '♙Clientes', '▤Presupuestos', '⚡Trabajos']);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Voltia Mini');
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.brand-title em')?.textContent,
+    ).toBe('Beta');
   });
 });

@@ -11,7 +11,9 @@ bootstrapApplication(App, appConfig)
   .then(() => {
     if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
       window.addEventListener('load', () =>
-        navigator.serviceWorker.register('/voltiamini-sw.js', { scope: '/mini/' }),
+        navigator.serviceWorker
+          .register('/voltiamini-sw.js', { scope: '/mini/' })
+          .catch((error) => console.warn('Voltia Mini offline no está disponible.', error)),
       );
     }
   })

@@ -22,8 +22,11 @@ export class MiniPdfService {
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = `${quote.number}.pdf`;
+    anchor.hidden = true;
+    document.body.appendChild(anchor);
     anchor.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
   }
 
   async share(quote: MiniQuote, settings: MiniSettings): Promise<void> {
@@ -42,7 +45,12 @@ export class MiniPdfService {
       type: 'application/pdf',
     });
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ title: quote.number, files: [file] });
+      try {
+        await navigator.share({ title: quote.number, files: [file] });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        throw error;
+      }
     } else {
       await this.download(quote, settings);
     }

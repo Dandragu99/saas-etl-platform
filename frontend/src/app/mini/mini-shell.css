@@ -15,7 +15,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: max(1rem, env(safe-area-inset-top)) 1rem 0.8rem;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0.8rem
+    max(1rem, env(safe-area-inset-left));
   border-bottom: 1px solid #dce7e9;
   background: #f8fbfbef;
   backdrop-filter: blur(16px);
@@ -43,6 +44,22 @@
   font-size: 1rem;
   letter-spacing: -0.02em;
 }
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.brand-title em {
+  padding: 0.12rem 0.35rem;
+  border-radius: 999px;
+  color: #09283e;
+  background: #b9f1ea;
+  font-size: 0.5rem;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .mini-brand small {
   color: #748691;
   font-size: 0.62rem;
@@ -60,7 +77,7 @@
 main {
   max-width: 48rem;
   margin: auto;
-  padding: 1rem;
+  padding: 1rem max(1rem, env(safe-area-inset-right)) 1rem max(1rem, env(safe-area-inset-left));
 }
 .mini-loading {
   display: grid;
@@ -75,7 +92,7 @@ main {
 .floating-action {
   position: fixed;
   z-index: 31;
-  right: 1.2rem;
+  right: max(1.2rem, env(safe-area-inset-right));
   bottom: calc(5.45rem + env(safe-area-inset-bottom));
   display: grid;
   width: 3.5rem;
@@ -92,9 +109,9 @@ main {
 .mini-nav {
   position: fixed;
   z-index: 30;
-  right: 0.65rem;
+  right: max(0.65rem, env(safe-area-inset-right));
   bottom: calc(0.6rem + env(safe-area-inset-bottom));
-  left: 0.65rem;
+  left: max(0.65rem, env(safe-area-inset-left));
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   padding: 0.35rem;

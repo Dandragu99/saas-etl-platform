@@ -38,6 +38,21 @@ textarea {
   font: inherit;
 }
 
+/* Safari evita el zoom automático del formulario cuando el control mide al menos 16 px. */
+app-mini-shell input,
+app-mini-shell select,
+app-mini-shell textarea {
+  font-size: 1rem;
+}
+
+app-mini-shell button,
+app-mini-shell a,
+app-mini-shell input,
+app-mini-shell select,
+app-mini-shell textarea {
+  touch-action: manipulation;
+}
+
 a {
   color: inherit;
 }

@@ -1,13 +1,27 @@
 {
   "name": "Voltia Mini",
-  "short_name": "Voltia",
+  "short_name": "Voltia Mini",
   "description": "Gestión móvil offline para electricistas autónomos",
-  "start_url": "/mini",
+  "id": "/mini/",
+  "start_url": "/mini/",
   "scope": "/mini/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#f1f5f6",
   "theme_color": "#071f35",
   "icons": [
+    {
+      "src": "/icons/voltia-mini-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/voltia-mini-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icons/voltia-mini.svg",
       "sizes": "any",
